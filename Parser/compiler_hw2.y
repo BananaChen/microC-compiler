@@ -71,10 +71,10 @@ void dump_symbol();
 %token COMMENT
 
 /* Token with return, which need to sepcify type */
-%token <i_val> I_CONST
-%token <f_val> F_CONST
-%token <string> STR_CONST
-%token <string> ID
+/*%token <i_val> I_CONST
+%token <f_val> F_CONST*/
+%token <string> STR_CONST I_CONST F_CONST
+%token <string> ID TRUE FALSE
 
 %token <string> STRING INT FLOAT VOID BOOL
 
@@ -91,6 +91,7 @@ void dump_symbol();
 %type <string> init_declarator
 %type <string> init_declarator_list
 
+%type <string> postfix_expression
 /* Yacc will start at this nonterminal */
 %start program
 
@@ -173,7 +174,7 @@ jump_statement
 
 print_func
     : PRINT LB STR_CONST RB SEMICOLON
-    | PRINT LB ID RB SEMICOLON
+    | PRINT LB ID RB SEMICOLON { lookup_symbol($3); }
     ;
 
 //------------------
@@ -264,26 +265,26 @@ multiplicative_expression
     | multiplicative_expression MOD unary_expression
 
 unary_expression
-    : postfix_expression
+    : postfix_expression { lookup_symbol($1); }
     | INC unary_expression
     | DEC unary_expression
     ;
 
 postfix_expression
-    : primary_expression
-    | postfix_expression LB RB
-    | postfix_expression LB argument_expression_list RB
-    | postfix_expression INC
-    | postfix_expression DEC
+    : primary_expression { $$ = $1; }
+    | postfix_expression LB RB { char tmp[VAR_SIZE] = "#"; $$ =strcat(tmp, $1); }
+    | postfix_expression LB argument_expression_list RB { char tmp[VAR_SIZE] = "#"; $$ =strcat(tmp, $1); }
+    | postfix_expression INC { $$ = $1; }
+    | postfix_expression DEC { $$ = $1; }
     ;
 
 primary_expression
-    : ID
-    | I_CONST
-    | F_CONST
-    | STR_CONST
-    | TRUE
-    | FALSE
+    : ID { $$ = $1; }
+    | I_CONST { $$ = "@"; }
+    | F_CONST { $$ = "@"; }
+    | STR_CONST { $$ = "@"; }
+    | TRUE { $$ = "@"; }
+    | FALSE { $$ = "@"; }
     ;
 
 argument_expression_list
@@ -420,7 +421,6 @@ void insert_symbol(char name[VAR_SIZE], char entryType[VAR_SIZE],
     currIndex++;
     init_symbolEntry(currIndex);
 
-    // printf("current index: %d, scopelevel %d\n", currIndex, scopeLevel);
     strcpy(symbolTable[currIndex].name, name);
     strcpy(symbolTable[currIndex].entryType, entryType);
     strcpy(symbolTable[currIndex].dataType, dataType);
@@ -432,12 +432,50 @@ void insert_symbol(char name[VAR_SIZE], char entryType[VAR_SIZE],
 }
 
 /*return 1 if no semantic error; return 0 if detected symantic error*/
-int lookup_symbol(char entryType[VAR_SIZE], char name[VAR_SIZE]) {
+int lookup_symbol(char varName[VAR_SIZE]) {
+    char entryType[VAR_SIZE];
 
+    if (varName[0] == '@') {
+        return 1;
+    } else if (varName[0] == '#') {
+        strcpy(entryType, "function");
+        memmove(varName, varName+1, strlen(varName));
+    } else {
+        strcpy(entryType, "variable");
+    }
+
+    // printf("[lookUp] %s %s\n", entryType, varName);
+
+    int isDeclared = 0;
+    int tmpIndex = currIndex;
+    for (int i = currIndex ; symbolTable[i].scopeLevel == currScopeLevel ; --i) {
+        tmpIndex = i;
+        if (strcmp(symbolTable[i].name, varName) == 0) {
+                isDeclared = 1;
+                break;
+        }
+    }
+    for (int i = tmpIndex ; i >= 0 ; --i) {
+        if (symbolTable[i].scopeLevel < currScopeLevel 
+            && strcmp(symbolTable[i].name, varName) == 0) {
+                isDeclared = 1;
+                break;
+        }
+    }
+
+    if (isDeclared == 0) {
+        printf("\n|-----------------------------------------------|\n");
+        printf("| Error found in line %d: %s\n", yylineno, buf);
+        printf("| Undeclared %s<%s>", entryType, varName);
+        printf("\n|-----------------------------------------------|\n\n");
+        return 0;
+    } else if (isDeclared == 1){
+        return 1;
+    }
 }
 
 void dump_symbol() {
-    for (int i = currIndex ; i >= 0 ; i--) {
+    for (int i = currIndex ; i >= 0 ; --i) {
         // if (currScopeLevel <= 0) {
         //     return;
         // }

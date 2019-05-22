@@ -113,7 +113,7 @@ cPuls2Comment "//".*
 {cPuls2Comment} { CONCAT; printf("%s", yytext); }
 
  /* others */
-[\n]        { printf("\n%d: ", yylineno+1); memset(buf, 0, 255); }
+[\n]        { printf("\n%d: ", yylineno); memset(buf, 0, 255); }
 [ \t]		{ printf(" "); } /* Ignore */
 [^ \t\n] 	{ } /* Ignore other charactor sets */
 <<EOF>>     { }
