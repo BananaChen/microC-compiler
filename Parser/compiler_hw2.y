@@ -14,18 +14,29 @@ extern char buf[256];  // Get current code line from lex
 
 int currScopeLevel = 0;
 int currIndex = 0;
+int currScopeIndex = 0;
+// int outerScopeIndex = 0;
 
 typedef struct {
     int index;
     char name[VAR_SIZE];
-    char entryName[VAR_SIZE];
+    char entryType[VAR_SIZE];
     char dataType[VAR_SIZE];
-    int scopeLevel[VAR_SIZE];
+    int scopeLevel;
     char formalParameters[VAR_SIZE];
 } SymbolEntry;
 
 SymbolEntry symbolTable[SYMBOL_TABLE_SIZE];
 
+
+void printAllSymbolTable();
+void init_symbolEntry();
+
+void find_outerScopeIndex();
+
+void insert_var_declaration(char* dataType, char* varNames);
+void insert_param_declaration(char* dataType, char* varNames);
+void insert_funct_declaration(char* dataType, char* nameAndParam);
 /* Symbol table function - you can add new function if needed. */
 int lookup_symbol();
 void create_symbol();
@@ -66,8 +77,17 @@ void dump_symbol();
 %token <string> STRING INT FLOAT VOID BOOL
 
 /* Nonterminal with return, which need to sepcify type */
-%type <string> declarator
 %type <string> type_specifier
+
+%type <string> declarator
+%type <string> identifier_list
+%type <string> primary_expression
+
+%type <string> parameter_declaration 
+%type <string> parameter_list
+
+%type <string> init_declarator
+%type <string> init_declarator_list
 
 /* Yacc will start at this nonterminal */
 %start program
@@ -86,7 +106,7 @@ external_declaration
     ;
 
 function_definition
-    : type_specifier declarator compound_statement  { printf("function [%s]\n", $1); }
+    : type_specifier declarator compound_statement { insert_funct_declaration($1, $2); } //==================================================
     | type_specifier declarator declaration_list compound_statement //for what?
     ;
 
@@ -156,34 +176,34 @@ print_func
 
 //------------------
 declaration
-    : type_specifier init_declarator_list SEMICOLON
+    : type_specifier init_declarator_list SEMICOLON { insert_var_declaration($1, $2); }//==============================================================
     ;
 
 init_declarator_list
-    : init_declarator
-    | init_declarator_list COMMA init_declarator
+    : init_declarator { $$ = $1; }
+    | init_declarator_list COMMA init_declarator { strcat($1, ", "); $$ = strcat($1, $3); }
     ;
 
 init_declarator
-    : declarator
-    | declarator ASGN initializer
+    : declarator { $$ = $1; }
+    | declarator ASGN initializer { $$ = $1; }
     ;
 
 declarator //direct_declarator
-    : ID
+    : ID { $$ = $1; }
     | LB declarator RB //for what?
-    | declarator LB parameter_list RB
+    | declarator LB parameter_list RB { strcat($1, "##"); $$ = strcat($1, $3); }
     | declarator LB RB 
     | declarator LB identifier_list RB
     ;
 
 parameter_list // parameter_type_list
-    : parameter_declaration
-    | parameter_list COMMA parameter_declaration
+    : parameter_declaration { $$ = $1; }
+    | parameter_list COMMA parameter_declaration { strcat($1, ", "); $$ = strcat($1, $3); }
     ;
 
 parameter_declaration
-    : type_specifier declarator { printf("parameter [%s] level %d\n", $1, currScopeLevel); }
+    : type_specifier declarator { $$ = $1; insert_param_declaration($1, $2); }
     | type_specifier //for what?
     ;
 
@@ -277,7 +297,6 @@ assignment_operator
     | ADDASGN
     | SUBASGN
 
-/* actions can be taken when meet the token or rule */
 type_specifier // declaration_specifiers
     : INT
     | FLOAT
@@ -307,8 +326,77 @@ void yyerror(char *s)
     printf("\n|-----------------------------------------------|\n\n");
 }
 
+
+
+void printAllSymbolTable() {
+
+    printf("\n%-10s%-10s%-12s%-10s%-10s%-10s\n\n",
+           "Index", "Name", "Kind", "Type", "Scope", "Attribute");
+    for (int i = 0 ; i <= currIndex ; ++i) {
+        printf("%-10d%-10s%-12s%-10s%-10d%-10s\n",
+           symbolTable[i].index, symbolTable[i].name, symbolTable[i].entryType, 
+           symbolTable[i].dataType, symbolTable[i].scopeLevel, symbolTable[i].formalParameters);
+    } 
+}
+
+
+void init_symbolEntry() {
+    int i = currIndex;
+    symbolTable[i].index = 0;
+    strcpy(symbolTable[i].name, "NaN");
+    strcpy(symbolTable[i].entryType, "NaN");
+    strcpy(symbolTable[i].dataType, "NaN");
+    symbolTable[i].scopeLevel = -1;
+    strcpy(symbolTable[i].formalParameters, "NaN");
+}
+
+void find_outerScopeIndex() {
+    
+}
+
+void insert_var_declaration(char dataType[VAR_SIZE], char varNames[VAR_SIZE]) {
+    char *pch = strtok(varNames, ",");
+
+    while (pch != NULL) {
+        insert_symbol(currScopeIndex, pch, "variable", dataType, currScopeLevel, "");
+        printf("var name: %s\n", pch);
+        pch = strtok(NULL, ",");
+    }
+}
+
+void insert_param_declaration(char dataType[VAR_SIZE], char paramName[VAR_SIZE]) {
+    insert_symbol(currScopeIndex, paramName, "parameter", dataType, currScopeLevel+1, "");
+}
+
+void insert_funct_declaration(char* dataType, char* nameAndParam) {
+    char *pch = strtok(nameAndParam, "##");
+    char *functName = pch;
+
+    pch = strtok(NULL, "##");
+    if (pch == NULL) {
+        pch = "";
+    }
+    insert_symbol(currScopeIndex, functName, "function", dataType, currScopeLevel, pch);
+}
+
+
 void create_symbol() {}
-void insert_symbol() {}
+void insert_symbol(int index, char name[VAR_SIZE], char entryType[VAR_SIZE], 
+                    char dataType[VAR_SIZE], int scopeLevel, char formalParam[VAR_SIZE]) {
+
+    init_symbolEntry();
+
+    symbolTable[currIndex].index = currIndex;
+    strcpy(symbolTable[currIndex].name, name);
+    strcpy(symbolTable[currIndex].entryType, entryType);
+    strcpy(symbolTable[currIndex].dataType, dataType);
+    symbolTable[currIndex].scopeLevel = scopeLevel;
+    strcpy(symbolTable[currIndex].formalParameters, formalParam);
+    //printf("### %d %s\n", symbolTable[currIndex].index, symbolTable[currIndex].name);
+    currIndex++;
+
+    printAllSymbolTable();
+}
 int lookup_symbol() {}
 void dump_symbol() {
     printf("\n%-10s%-10s%-12s%-10s%-10s%-10s\n\n",
