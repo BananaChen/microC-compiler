@@ -13,12 +13,11 @@ extern char* yytext;   // Get current token from lex
 extern char buf[256];  // Get current code line from lex
 
 int currScopeLevel = 0;
-int currIndex = 0;
-int currScopeIndex = 0;
+int currIndex = -1;
 // int outerScopeIndex = 0;
 
 typedef struct {
-    int index;
+    //int index;
     char name[VAR_SIZE];
     char entryType[VAR_SIZE];
     char dataType[VAR_SIZE];
@@ -29,10 +28,10 @@ typedef struct {
 SymbolEntry symbolTable[SYMBOL_TABLE_SIZE];
 
 
-void printAllSymbolTable();
+void printSymbolTable(int startIndex);
 void init_symbolEntry();
 
-void find_outerScopeIndex();
+void clearSymbolEntries(int headIndex, int tailIndex);
 
 void insert_var_declaration(char* dataType, char* varNames);
 void insert_param_declaration(char* dataType, char* varNames);
@@ -40,7 +39,8 @@ void insert_funct_declaration(char* dataType, char* nameAndParam);
 /* Symbol table function - you can add new function if needed. */
 int lookup_symbol();
 void create_symbol();
-void insert_symbol();
+void insert_symbol(char name[VAR_SIZE], char entryType[VAR_SIZE], 
+                    char dataType[VAR_SIZE], int scopeLevel, char formalParam[VAR_SIZE]);
 void dump_symbol();
 
 %}
@@ -328,21 +328,19 @@ void yyerror(char *s)
 
 
 
-void printAllSymbolTable() {
+void printSymbolTable(int startIndex) {
 
-    printf("\n%-10s%-10s%-12s%-10s%-10s%-10s\n\n",
+    printf("\n\n%-10s%-10s%-12s%-10s%-10s%-10s\n\n",
            "Index", "Name", "Kind", "Type", "Scope", "Attribute");
-    for (int i = 0 ; i <= currIndex ; ++i) {
+    for (int i = startIndex ; i <= currIndex ; ++i) {
         printf("%-10d%-10s%-12s%-10s%-10d%-10s\n",
-           symbolTable[i].index, symbolTable[i].name, symbolTable[i].entryType, 
+           i-startIndex, symbolTable[i].name, symbolTable[i].entryType, 
            symbolTable[i].dataType, symbolTable[i].scopeLevel, symbolTable[i].formalParameters);
     } 
 }
 
 
-void init_symbolEntry() {
-    int i = currIndex;
-    symbolTable[i].index = 0;
+void init_symbolEntry(int i) {
     strcpy(symbolTable[i].name, "NaN");
     strcpy(symbolTable[i].entryType, "NaN");
     strcpy(symbolTable[i].dataType, "NaN");
@@ -350,22 +348,19 @@ void init_symbolEntry() {
     strcpy(symbolTable[i].formalParameters, "NaN");
 }
 
-void find_outerScopeIndex() {
-    
-}
-
+/*insert*/
 void insert_var_declaration(char dataType[VAR_SIZE], char varNames[VAR_SIZE]) {
     char *pch = strtok(varNames, ",");
 
     while (pch != NULL) {
-        insert_symbol(currScopeIndex, pch, "variable", dataType, currScopeLevel, "");
-        printf("var name: %s\n", pch);
+        insert_symbol(pch, "variable", dataType, currScopeLevel, "");
+        //printf("var name: %s\n", pch);
         pch = strtok(NULL, ",");
     }
 }
 
 void insert_param_declaration(char dataType[VAR_SIZE], char paramName[VAR_SIZE]) {
-    insert_symbol(currScopeIndex, paramName, "parameter", dataType, currScopeLevel+1, "");
+    insert_symbol(paramName, "parameter", dataType, currScopeLevel+1, "");
 }
 
 void insert_funct_declaration(char* dataType, char* nameAndParam) {
@@ -376,29 +371,46 @@ void insert_funct_declaration(char* dataType, char* nameAndParam) {
     if (pch == NULL) {
         pch = "";
     }
-    insert_symbol(currScopeIndex, functName, "function", dataType, currScopeLevel, pch);
+    insert_symbol(functName, "function", dataType, currScopeLevel, pch);
 }
 
+void clearSymbolEntries(int headIndex, int tailIndex) {
+    for (int i = headIndex ; i <= tailIndex ; ++i) {
+        init_symbolEntry(i);
+    }
+}
 
 void create_symbol() {}
-void insert_symbol(int index, char name[VAR_SIZE], char entryType[VAR_SIZE], 
+void insert_symbol(char name[VAR_SIZE], char entryType[VAR_SIZE], 
                     char dataType[VAR_SIZE], int scopeLevel, char formalParam[VAR_SIZE]) {
+    
+    currIndex++;
+    init_symbolEntry(currIndex);
 
-    init_symbolEntry();
-
-    symbolTable[currIndex].index = currIndex;
     strcpy(symbolTable[currIndex].name, name);
     strcpy(symbolTable[currIndex].entryType, entryType);
     strcpy(symbolTable[currIndex].dataType, dataType);
     symbolTable[currIndex].scopeLevel = scopeLevel;
     strcpy(symbolTable[currIndex].formalParameters, formalParam);
-    //printf("### %d %s\n", symbolTable[currIndex].index, symbolTable[currIndex].name);
-    currIndex++;
 
-    printAllSymbolTable();
+    //printSymbolTable(0);
 }
 int lookup_symbol() {}
+
 void dump_symbol() {
-    printf("\n%-10s%-10s%-12s%-10s%-10s%-10s\n\n",
-           "Index", "Name", "Kind", "Type", "Scope", "Attribute");
+    for (int i = currIndex ; i >= 0 ; i--) {
+        // if (currScopeLevel <= 0) {
+        //     return;
+        // }
+        
+        //printf("\n### i: %d, currIndex: %d, outerScopeLevel: %d, currScopeLevel: %d", i, currIndex, symbolTable[i].scopeLevel, currScopeLevel);
+        if (symbolTable[i].scopeLevel == currScopeLevel - 1) {
+            if (i != currIndex) {
+                printSymbolTable(i+1);
+                clearSymbolEntries(i+1, currIndex);
+                currIndex = i;
+            }
+            return;
+        }
+    }
 }

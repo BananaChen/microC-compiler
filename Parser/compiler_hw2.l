@@ -9,7 +9,8 @@ extern YYSTYPE yylval; //YYSTYPE
 char buf[BUF_SIZE];
 
 extern int currScopeLevel;
-extern int currScopeIndex;
+
+extern void dump_symbol();
 
 void printLine();
 
@@ -67,8 +68,8 @@ cPuls2Comment "//".*
  /* Delimiters */
 "("		{ CONCAT; printf("%s", yytext); return LB; }
 ")"		{ CONCAT; printf("%s", yytext); return RB; }
-"{"		{ CONCAT; printf("%s", yytext); currScopeLevel++; currScopeIndex = 0; return LCB; }
-"}"		{ CONCAT; printf("%s", yytext); currScopeLevel--; return RCB; }
+"{"		{ CONCAT; printf("%s", yytext); currScopeLevel++; return LCB; }
+"}"		{ CONCAT; printf("%s", yytext); dump_symbol(); currScopeLevel--; return RCB; }
 "["		{ CONCAT; printf("%s", yytext); return LSB; }
 "]"		{ CONCAT; printf("%s", yytext); return RSB; }
 ","		{ CONCAT; printf("%s", yytext); return COMMA; }
