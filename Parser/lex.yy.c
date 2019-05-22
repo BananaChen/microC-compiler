@@ -1178,7 +1178,7 @@ case 53:
 /* rule 53 can match eol */
 YY_RULE_SETUP
 #line 116 "compiler_hw2.l"
-{ printf("\n%d: ", yylineno+1); }
+{ printf("\n%d: ", yylineno+1); memset(buf, 0, 255); }
 	YY_BREAK
 case 54:
 YY_RULE_SETUP

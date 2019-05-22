@@ -36,6 +36,8 @@ void clearSymbolEntries(int headIndex, int tailIndex);
 void insert_var_declaration(char* dataType, char* varNames);
 void insert_param_declaration(char* dataType, char* varNames);
 void insert_funct_declaration(char* dataType, char* nameAndParam);
+
+int checkRedeclare(char entryType[VAR_SIZE], char name[VAR_SIZE]);
 /* Symbol table function - you can add new function if needed. */
 int lookup_symbol();
 void create_symbol();
@@ -97,7 +99,7 @@ void dump_symbol();
 
 program
     : external_declaration
-    | program external_declaration
+    | program external_declaration { /*printSymbolTable(0);*/ }
     ;
 
 external_declaration
@@ -351,11 +353,17 @@ void init_symbolEntry(int i) {
 /*insert*/
 void insert_var_declaration(char dataType[VAR_SIZE], char varNames[VAR_SIZE]) {
     char *pch = strtok(varNames, ",");
+    char* name;
 
     while (pch != NULL) {
-        insert_symbol(pch, "variable", dataType, currScopeLevel, "");
-        //printf("var name: %s\n", pch);
-        pch = strtok(NULL, ",");
+        name = pch;
+        if (checkRedeclare("variable", name) == 0) {
+            insert_symbol(name, "variable", dataType, currScopeLevel, "");
+            pch = strtok(NULL, ",");
+        }
+        else {
+            return;
+        }
     }
 }
 
@@ -371,7 +379,13 @@ void insert_funct_declaration(char* dataType, char* nameAndParam) {
     if (pch == NULL) {
         pch = "";
     }
-    insert_symbol(functName, "function", dataType, currScopeLevel, pch);
+
+    if (checkRedeclare("function", functName) == 0) {
+        insert_symbol(functName, "function", dataType, currScopeLevel, pch);
+    }
+    else {
+        return;
+    }
 }
 
 void clearSymbolEntries(int headIndex, int tailIndex) {
@@ -380,22 +394,47 @@ void clearSymbolEntries(int headIndex, int tailIndex) {
     }
 }
 
+/*return 0 if no semantic error; return 1 if detected symantic error*/
+int checkRedeclare(char entryType[VAR_SIZE], char name[VAR_SIZE]) {
+    for (int i = currIndex ; i >= 0 ; i--) {
+        if (symbolTable[i].scopeLevel == currScopeLevel) {
+
+            /*Semantic Error: Redeclare*/
+            if (strcmp(symbolTable[i].name, name) == 0) {
+                printf("\n|-----------------------------------------------|\n");
+                printf("| Error found in line %d: %s\n", yylineno, buf);
+                printf("| Redeclared %s<%s>", entryType, name);
+                printf("\n|-----------------------------------------------|\n\n");
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 void create_symbol() {}
 void insert_symbol(char name[VAR_SIZE], char entryType[VAR_SIZE], 
                     char dataType[VAR_SIZE], int scopeLevel, char formalParam[VAR_SIZE]) {
+
     
     currIndex++;
     init_symbolEntry(currIndex);
 
+    // printf("current index: %d, scopelevel %d\n", currIndex, scopeLevel);
     strcpy(symbolTable[currIndex].name, name);
     strcpy(symbolTable[currIndex].entryType, entryType);
     strcpy(symbolTable[currIndex].dataType, dataType);
     symbolTable[currIndex].scopeLevel = scopeLevel;
     strcpy(symbolTable[currIndex].formalParameters, formalParam);
 
-    //printSymbolTable(0);
+    // printf("[funct insert]current index: %d, %s\n", currIndex, symbolTable[currIndex].name);
+    //  printSymbolTable(0);
 }
-int lookup_symbol() {}
+
+/*return 1 if no semantic error; return 0 if detected symantic error*/
+int lookup_symbol(char entryType[VAR_SIZE], char name[VAR_SIZE]) {
+
+}
 
 void dump_symbol() {
     for (int i = currIndex ; i >= 0 ; i--) {
@@ -412,5 +451,6 @@ void dump_symbol() {
             }
             return;
         }
+        // printSymbolTable(0);
     }
 }
