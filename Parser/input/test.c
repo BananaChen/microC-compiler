@@ -1,6 +1,6 @@
 // void hello(int a, int b);
-// int z;
-// int z;
+int z;
+int z;
 
 
 
@@ -11,7 +11,7 @@ void hello(){
 
 }
 
-void apple(int a) {
+void apple (int a) {
 
 }
 

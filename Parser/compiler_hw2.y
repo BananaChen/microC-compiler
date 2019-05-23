@@ -6,6 +6,8 @@
 
 #define VAR_SIZE 100
 #define SYMBOL_TABLE_SIZE 200
+#define ERROR_MESSAGE_SIZE 200
+#define ERROR_BUFF_SIZE 100
 
 extern int yylineno;
 extern int yylex();
@@ -14,7 +16,9 @@ extern char buf[256];  // Get current code line from lex
 
 int currScopeLevel = 0;
 int currIndex = -1;
-// int outerScopeIndex = 0;
+
+char errorBuff[ERROR_BUFF_SIZE][ERROR_MESSAGE_SIZE];
+int errorIndex = -1;
 
 typedef struct {
     //int index;
@@ -36,6 +40,9 @@ void clearSymbolEntries(int headIndex, int tailIndex);
 void insert_var_declaration(char* dataType, char* varNames);
 void insert_param_declaration(char* dataType, char* varNames);
 void insert_funct_declaration(char* dataType, char* nameAndParam);
+
+void popErrorBuff();
+void pushErrorBuff(char errorMessage[ERROR_MESSAGE_SIZE]);
 
 int checkRedeclare(char entryType[VAR_SIZE], char name[VAR_SIZE]);
 /* Symbol table function - you can add new function if needed. */
@@ -99,8 +106,9 @@ void dump_symbol();
 %%
 
 program
-    : external_declaration
+    : external_declaration { /*printSymbolTable(0);*/  }
     | program external_declaration { /*printSymbolTable(0);*/ }
+    | 
     ;
 
 external_declaration
@@ -144,7 +152,7 @@ statement
 
 expression_statement
     : SEMICOLON
-    | expression SEMICOLON
+    | expression SEMICOLON { popErrorBuff(); }
     ;
 
 expression
@@ -174,7 +182,7 @@ jump_statement
 
 print_func
     : PRINT LB STR_CONST RB SEMICOLON
-    | PRINT LB ID RB SEMICOLON { lookup_symbol($3); }
+    | PRINT LB ID RB SEMICOLON { lookup_symbol($3); popErrorBuff(); }
     ;
 
 //------------------
@@ -313,7 +321,8 @@ type_specifier // declaration_specifiers
 /* C code section */
 int main(int argc, char** argv)
 {
-    yylineno = 0;
+    yylineno = 1;
+    printf("%d: ", yylineno);
 
     yyparse();
 	printf("\nTotal lines: %d \n",yylineno);
@@ -323,7 +332,7 @@ int main(int argc, char** argv)
 
 void yyerror(char *s)
 {
-    printf("\n|-----------------------------------------------|\n");
+    printf("\n\n|-----------------------------------------------|\n");
     printf("| Error found in line %d: %s\n", yylineno, buf);
     printf("| %s", s);
     printf("\n|-----------------------------------------------|\n\n");
@@ -397,20 +406,35 @@ void clearSymbolEntries(int headIndex, int tailIndex) {
 
 /*return 0 if no semantic error; return 1 if detected symantic error*/
 int checkRedeclare(char entryType[VAR_SIZE], char name[VAR_SIZE]) {
+    char errorMessage[ERROR_MESSAGE_SIZE];
     for (int i = currIndex ; i >= 0 ; i--) {
         if (symbolTable[i].scopeLevel == currScopeLevel) {
 
             /*Semantic Error: Redeclare*/
             if (strcmp(symbolTable[i].name, name) == 0) {
-                printf("\n|-----------------------------------------------|\n");
-                printf("| Error found in line %d: %s\n", yylineno, buf);
-                printf("| Redeclared %s<%s>", entryType, name);
-                printf("\n|-----------------------------------------------|\n\n");
+                    strcpy(errorMessage, "Redeclared ");
+                    strcat(errorMessage, entryType);
+                    strcat(errorMessage, " ");
+                    strcat(errorMessage, name);
+                    yyerror(errorMessage);
                 return 1;
             }
         }
     }
     return 0;
+}
+
+void popErrorBuff() {
+    for (int i = 0 ; i <= errorIndex ; ++i) {
+        yyerror(errorBuff[i]);
+        strcpy(errorBuff[i], "");
+    }
+    errorIndex = -1;
+}
+
+void pushErrorBuff(char errorMessage[ERROR_MESSAGE_SIZE]) {
+    errorIndex++;
+    strcpy(errorBuff[errorIndex], errorMessage);
 }
 
 void create_symbol() {}
@@ -434,6 +458,7 @@ void insert_symbol(char name[VAR_SIZE], char entryType[VAR_SIZE],
 /*return 1 if no semantic error; return 0 if detected symantic error*/
 int lookup_symbol(char varName[VAR_SIZE]) {
     char entryType[VAR_SIZE];
+    char errorMessage[ERROR_MESSAGE_SIZE];
 
     if (varName[0] == '@') {
         return 1;
@@ -464,10 +489,11 @@ int lookup_symbol(char varName[VAR_SIZE]) {
     }
 
     if (isDeclared == 0) {
-        printf("\n|-----------------------------------------------|\n");
-        printf("| Error found in line %d: %s\n", yylineno, buf);
-        printf("| Undeclared %s<%s>", entryType, varName);
-        printf("\n|-----------------------------------------------|\n\n");
+        strcpy(errorMessage, "Undeclared ");
+        strcat(errorMessage, entryType);
+        strcat(errorMessage, " ");
+        strcat(errorMessage, varName);
+        pushErrorBuff(errorMessage);
         return 0;
     } else if (isDeclared == 1){
         return 1;

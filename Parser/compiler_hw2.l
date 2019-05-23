@@ -108,8 +108,14 @@ cPuls2Comment "//".*
  /* Variable ID */
 {id}       { CONCAT; printf("%s", yytext); yylval.string = strdup(yytext); return ID; }
 
- /* Comment */
-{cComment}      { CONCAT; printf("%s", yytext); }
+ /* C type Comment */
+"/*"				{ BEGIN COMMENT; printf("%s", yytext); }
+<COMMENT>[^*\n]+	{ printf("%s", yytext); }
+<COMMENT>\n			{ printf("%s", yytext); printf("%d: ", yylineno); }
+<COMMENT>"*"		{ printf("%s", yytext); }
+<COMMENT>"*/"		{  BEGIN INITIAL; printf("%s", yytext); }
+
+ /* C++ type Comment */
 {cPuls2Comment} { CONCAT; printf("%s", yytext); }
 
  /* others */
