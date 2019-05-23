@@ -122,7 +122,7 @@ cPuls2Comment "//".*
 [\n]        { printf("\n%d: ", yylineno); memset(buf, 0, 255); }
 [ \t]		{ printf(" "); } /* Ignore */
 [^ \t\n] 	{ } /* Ignore other charactor sets */
-<<EOF>>     { }
+<<EOF>>     { return EOF; }
 
 %%
 void printLine()
