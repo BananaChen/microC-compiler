@@ -14,6 +14,10 @@ extern int yylex();
 extern char* yytext;   // Get current token from lex
 extern char buf[256];  // Get current code line from lex
 
+extern printLine(int isError);
+extern int isYYError;
+int isSyntaxError = 0;
+
 int currScopeLevel = 0;
 int currIndex = -1;
 
@@ -108,7 +112,7 @@ void dump_symbol();
 program
     : external_declaration { /*printSymbolTable(0);*/  }
     | program external_declaration { /*printSymbolTable(0);*/ }
-    | 
+    |
     ;
 
 external_declaration
@@ -203,7 +207,7 @@ init_declarator
 declarator //direct_declarator
     : ID { $$ = $1; }
     | LB declarator RB //for what?
-    | declarator LB parameter_list RB { strcat($1, "##"); $$ = strcat($1, $3); }
+    | declarator LB parameter_list RB { /*seperate parameter*/ strcat($1, "##"); $$ = strcat($1, $3); }
     | declarator LB RB 
     | declarator LB identifier_list RB
     ;
@@ -321,21 +325,30 @@ type_specifier // declaration_specifiers
 /* C code section */
 int main(int argc, char** argv)
 {
-    yylineno = 1;
-    printf("%d: ", yylineno);
+    yylineno = 0;
+    // printf("%d: ", yylineno);
 
     yyparse();
-	printf("\nTotal lines: %d \n",yylineno);
+    if (isSyntaxError == 0) {
+        printFinalSymbolTable(0);
+    	printf("\n\nTotal lines: %d \n",yylineno);
+    }
 
     return 0;
 }
 
 void yyerror(char *s)
 {
-    printf("\n\n|-----------------------------------------------|\n");
-    printf("| Error found in line %d: %s\n", yylineno, buf);
-    printf("| %s", s);
+    if (strcmp(s, "syntax error") == 0) {
+        isSyntaxError = 1;
+    }
+    isYYError = 1;
+    printLine(1);
     printf("\n|-----------------------------------------------|\n");
+    printf("| Error found in line %d: %s\n", yylineno+1, buf);
+    printf("| %s", s);
+    printf("\n|-----------------------------------------------|\n\n");
+    memset(buf, 0, 255);
 }
 
 
@@ -345,12 +358,23 @@ void printSymbolTable(int startIndex) {
     printf("\n\n%-10s%-10s%-12s%-10s%-10s%-10s\n\n",
            "Index", "Name", "Kind", "Type", "Scope", "Attribute");
     for (int i = startIndex ; i <= currIndex ; ++i) {
-        printf("%-10d%-10s%-12s%-10s%-10d%-10s\n",
+        printf("%-10d%-10s%-12s%-10s%-10d%s\n",
            i-startIndex, symbolTable[i].name, symbolTable[i].entryType, 
            symbolTable[i].dataType, symbolTable[i].scopeLevel, symbolTable[i].formalParameters);
-    } 
+    }
 }
 
+/*Difference: \n */
+void printFinalSymbolTable(int startIndex) {
+
+    printf("\n%-10s%-10s%-12s%-10s%-10s%-10s\n\n",
+           "Index", "Name", "Kind", "Type", "Scope", "Attribute");
+    for (int i = startIndex ; i <= currIndex ; ++i) {
+        printf("%-10d%-10s%-12s%-10s%-10d%s\n",
+           i-startIndex, symbolTable[i].name, symbolTable[i].entryType, 
+           symbolTable[i].dataType, symbolTable[i].scopeLevel, symbolTable[i].formalParameters);
+    }
+}
 
 void init_symbolEntry(int i) {
     strcpy(symbolTable[i].name, "NaN");
