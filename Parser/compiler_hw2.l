@@ -89,7 +89,7 @@ cPuls2Comment "//".*
 "string"  	{ CONCAT; printf("%s", yytext); yylval.string = strdup(yytext); return STRING; }
 "int"		{ CONCAT; printf("%s", yytext); yylval.string = strdup(yytext); return INT; }
 "float"  	{ CONCAT; printf("%s", yytext); yylval.string = strdup(yytext); return FLOAT; }
-"void"		{ CONCAT; printf("%s", yytext); yylval.string = strdup(yytext);return VOID; }
+"void"		{ CONCAT; printf("%s", yytext); yylval.string = strdup(yytext); return VOID; }
 "bool"  	{ CONCAT; printf("%s", yytext); yylval.string = strdup(yytext); return BOOL; }
 
  /* boolean Keywords */
@@ -113,16 +113,16 @@ cPuls2Comment "//".*
 <COMMENT>[^*\n]+	{ printf("%s", yytext); }
 <COMMENT>\n			{ printf("%s", yytext); printf("%d: ", yylineno); }
 <COMMENT>"*"		{ printf("%s", yytext); }
-<COMMENT>"*/"		{  BEGIN INITIAL; printf("%s", yytext); }
+<COMMENT>"*/"		{ BEGIN INITIAL; printf("%s", yytext); }
 
  /* C++ type Comment */
 {cPuls2Comment} { CONCAT; printf("%s", yytext); }
 
  /* others */
 [\n]        { printf("\n%d: ", yylineno); memset(buf, 0, 255); }
-[ \t]		{ printf(" "); } /* Ignore */
+[ \t]		{ strncat(buf, " ", BUF_SIZE - strlen(buf) - 1); printf(" "); } /* Ignore */
 [^ \t\n] 	{ } /* Ignore other charactor sets */
-<<EOF>>     { }
+<<EOF>>     { return EOF; }
 
 %%
 void printLine()

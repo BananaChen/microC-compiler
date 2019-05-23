@@ -1,26 +1,18 @@
-// void hello(int a, int b);
+void hello();
 int z;
 int z;
-
-
-
-
-
 
 void hello(){
 
 }
 
-void apple (int a) {
+void apple (int a, int b) {
 
 }
 
 int main () {
     hello();
-    apple(3);
+    apple(f, g);
     happy();
     c = 10;
-    
-
-
 }

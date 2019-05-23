@@ -1106,7 +1106,7 @@ YY_RULE_SETUP
 case 40:
 YY_RULE_SETUP
 #line 92 "compiler_hw2.l"
-{ CONCAT; printf("%s", yytext); yylval.string = strdup(yytext);return VOID; }
+{ CONCAT; printf("%s", yytext); yylval.string = strdup(yytext); return VOID; }
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
@@ -1187,7 +1187,7 @@ YY_RULE_SETUP
 case 55:
 YY_RULE_SETUP
 #line 116 "compiler_hw2.l"
-{  BEGIN INITIAL; printf("%s", yytext); }
+{ BEGIN INITIAL; printf("%s", yytext); }
 	YY_BREAK
 /* C++ type Comment */
 case 56:
@@ -1205,7 +1205,7 @@ YY_RULE_SETUP
 case 58:
 YY_RULE_SETUP
 #line 123 "compiler_hw2.l"
-{ printf(" "); } /* Ignore */
+{ strncat(buf, " ", BUF_SIZE - strlen(buf) - 1); printf(" "); } /* Ignore */
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
@@ -1216,7 +1216,7 @@ case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(COMMENT):
 case YY_STATE_EOF(STRING_STATE):
 #line 125 "compiler_hw2.l"
-{ }
+{ return EOF; }
 	YY_BREAK
 case 60:
 YY_RULE_SETUP

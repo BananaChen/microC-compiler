@@ -27,6 +27,7 @@ typedef struct {
     char dataType[VAR_SIZE];
     int scopeLevel;
     char formalParameters[VAR_SIZE];
+    int isPreDeclared;
 } SymbolEntry;
 
 SymbolEntry symbolTable[SYMBOL_TABLE_SIZE];
@@ -49,7 +50,7 @@ int checkRedeclare(char entryType[VAR_SIZE], char name[VAR_SIZE]);
 int lookup_symbol();
 void create_symbol();
 void insert_symbol(char name[VAR_SIZE], char entryType[VAR_SIZE], 
-                    char dataType[VAR_SIZE], int scopeLevel, char formalParam[VAR_SIZE]);
+                    char dataType[VAR_SIZE], int scopeLevel, char formalParam[VAR_SIZE], int isPreDeclared);
 void dump_symbol();
 
 %}
@@ -73,7 +74,6 @@ void dump_symbol();
 %token PRINT 
 %token IF ELSE FOR WHILE
 //%token STRING INT FLOAT VOID BOOL
-%token TRUE FALSE
 %token RET CONT BREAK
 %token COMMENT
 
@@ -81,7 +81,9 @@ void dump_symbol();
 /*%token <i_val> I_CONST
 %token <f_val> F_CONST*/
 %token <string> STR_CONST I_CONST F_CONST
-%token <string> ID TRUE FALSE
+%token <string> ID 
+%token <string> TRUE
+%token <string> FALSE
 
 %token <string> STRING INT FLOAT VOID BOOL
 
@@ -107,7 +109,7 @@ void dump_symbol();
 
 program
     : external_declaration { /*printSymbolTable(0);*/  }
-    | program external_declaration { /*printSymbolTable(0);*/ }
+    | program external_declaration { printSymbolTable(0); }
     | 
     ;
 
@@ -203,8 +205,9 @@ init_declarator
 declarator //direct_declarator
     : ID { $$ = $1; }
     | LB declarator RB //for what?
-    | declarator LB parameter_list RB { strcat($1, "##"); $$ = strcat($1, $3); }
-    | declarator LB RB 
+    | declarator LB parameter_list RB { /*differ funct declare from var declare*/ char tmp[VAR_SIZE] = "@@"; strcat(tmp, $1);
+                                        /*seperate parameter*/ strcat(tmp, "##"); $$ = strcat(tmp, $3); }
+    | declarator LB RB { /*differ funct declare from var declare*/ char tmp[VAR_SIZE] = "@@"; $$ = strcat(tmp, $1); }
     | declarator LB identifier_list RB
     ;
 
@@ -322,6 +325,7 @@ type_specifier // declaration_specifiers
 int main(int argc, char** argv)
 {
     yylineno = 1;
+    printf("fuck u");
     printf("%d: ", yylineno);
 
     yyparse();
@@ -335,7 +339,7 @@ void yyerror(char *s)
     printf("\n\n|-----------------------------------------------|\n");
     printf("| Error found in line %d: %s\n", yylineno, buf);
     printf("| %s", s);
-    printf("\n|-----------------------------------------------|\n\n");
+    printf("\n|-----------------------------------------------|\n");
 }
 
 
@@ -358,17 +362,28 @@ void init_symbolEntry(int i) {
     strcpy(symbolTable[i].dataType, "NaN");
     symbolTable[i].scopeLevel = -1;
     strcpy(symbolTable[i].formalParameters, "NaN");
+    symbolTable[i].isPreDeclared = 0;
 }
 
 /*insert*/
 void insert_var_declaration(char dataType[VAR_SIZE], char varNames[VAR_SIZE]) {
     char *pch = strtok(varNames, ",");
-    char* name;
+    char *name;
+    char entryType[VAR_SIZE];
+    int isPreDeclared = 0;
+
+    if (varNames[0] == '@' && varNames[1] =='@') {//if is function declare
+        memmove(varNames, varNames+2, strlen(varNames));//remove "@@" infront funct declare(in [declarator] grammar)
+        strcpy(entryType, "function");
+        isPreDeclared = 1;
+    } else {
+        strcpy(entryType, "variable");
+    }
 
     while (pch != NULL) {
         name = pch;
-        if (checkRedeclare("variable", name) == 0) {
-            insert_symbol(name, "variable", dataType, currScopeLevel, "");
+        if (checkRedeclare(entryType, name) == 0) {
+            insert_symbol(name, entryType, dataType, currScopeLevel, "", isPreDeclared);
             pch = strtok(NULL, ",");
         }
         else {
@@ -378,10 +393,18 @@ void insert_var_declaration(char dataType[VAR_SIZE], char varNames[VAR_SIZE]) {
 }
 
 void insert_param_declaration(char dataType[VAR_SIZE], char paramName[VAR_SIZE]) {
-    insert_symbol(paramName, "parameter", dataType, currScopeLevel+1, "");
+    insert_symbol(paramName, "parameter", dataType, currScopeLevel+1, "", 0);
 }
 
 void insert_funct_declaration(char* dataType, char* nameAndParam) {
+    // printf("[   ]%s\n", nameAndParam);
+    if (nameAndParam[0] == '@' && nameAndParam[1] =='@') {
+        memmove(nameAndParam, nameAndParam+2, strlen(nameAndParam));//remove "@@" infront funct declare(in [declarator] grammar)
+    } else {
+        yyerror("not function");
+        return;
+    }
+
     char *pch = strtok(nameAndParam, "##");
     char *functName = pch;
 
@@ -390,8 +413,18 @@ void insert_funct_declaration(char* dataType, char* nameAndParam) {
         pch = "";
     }
 
+    /*check if is predeclared, if predeclared, then dont insert*/
+    for (int i = currIndex ; i >= 0 ; i--) {
+        if (symbolTable[i].scopeLevel == currScopeLevel) {
+            if (strcmp(symbolTable[i].name, functName) == 0 && symbolTable[i].isPreDeclared == 1 
+                && strcmp(symbolTable[i].entryType, "function") == 0) {
+                return;
+            }
+        }
+    }
+
     if (checkRedeclare("function", functName) == 0) {
-        insert_symbol(functName, "function", dataType, currScopeLevel, pch);
+        insert_symbol(functName, "function", dataType, currScopeLevel, pch, 0);
     }
     else {
         return;
@@ -409,7 +442,6 @@ int checkRedeclare(char entryType[VAR_SIZE], char name[VAR_SIZE]) {
     char errorMessage[ERROR_MESSAGE_SIZE];
     for (int i = currIndex ; i >= 0 ; i--) {
         if (symbolTable[i].scopeLevel == currScopeLevel) {
-
             /*Semantic Error: Redeclare*/
             if (strcmp(symbolTable[i].name, name) == 0) {
                     strcpy(errorMessage, "Redeclared ");
@@ -439,7 +471,7 @@ void pushErrorBuff(char errorMessage[ERROR_MESSAGE_SIZE]) {
 
 void create_symbol() {}
 void insert_symbol(char name[VAR_SIZE], char entryType[VAR_SIZE], 
-                    char dataType[VAR_SIZE], int scopeLevel, char formalParam[VAR_SIZE]) {
+                    char dataType[VAR_SIZE], int scopeLevel, char formalParam[VAR_SIZE], int isPreDeclared) {
 
     
     currIndex++;
@@ -450,6 +482,8 @@ void insert_symbol(char name[VAR_SIZE], char entryType[VAR_SIZE],
     strcpy(symbolTable[currIndex].dataType, dataType);
     symbolTable[currIndex].scopeLevel = scopeLevel;
     strcpy(symbolTable[currIndex].formalParameters, formalParam);
+    symbolTable[currIndex].isPreDeclared = isPreDeclared;
+
 
     // printf("[funct insert]current index: %d, %s\n", currIndex, symbolTable[currIndex].name);
     //  printSymbolTable(0);

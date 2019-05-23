@@ -196,16 +196,16 @@ IF (290) 26 27
 ELSE (291) 26
 FOR (292) 29 30 31 32
 WHILE (293) 28
-TRUE (294) 90
-FALSE (295) 91
-RET (296) 35 36
-CONT (297) 33
-BREAK (298) 34
-COMMENT (299)
-STR_CONST (300) 37 89
-I_CONST (301) 87
-F_CONST (302) 88
-ID (303) 38 44 53 54 86
+RET (294) 35 36
+CONT (295) 33
+BREAK (296) 34
+COMMENT (297)
+STR_CONST (298) 37 89
+I_CONST (299) 87
+F_CONST (300) 88
+ID (301) 38 44 53 54 86
+TRUE (302) 90
+FALSE (303) 91
 STRING (304) 103
 INT (305) 100
 FLOAT (306) 101
@@ -512,12 +512,12 @@ State 21
 
     INC        shift, and go to state 31
     DEC        shift, and go to state 32
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     initializer                go to state 39
     assignment_expression      go to state 40
@@ -567,15 +567,15 @@ State 23
     IF         shift, and go to state 60
     FOR        shift, and go to state 61
     WHILE      shift, and go to state 62
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
     RET        shift, and go to state 63
     CONT       shift, and go to state 64
     BREAK      shift, and go to state 65
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
     STRING     shift, and go to state 1
     INT        shift, and go to state 2
     FLOAT      shift, and go to state 3
@@ -684,12 +684,12 @@ State 31
 
     INC        shift, and go to state 31
     DEC        shift, and go to state 32
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     unary_expression    go to state 80
     postfix_expression  go to state 49
@@ -702,12 +702,12 @@ State 32
 
     INC        shift, and go to state 31
     DEC        shift, and go to state 32
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     unary_expression    go to state 81
     postfix_expression  go to state 49
@@ -716,44 +716,44 @@ State 32
 
 State 33
 
-   90 primary_expression: TRUE .
-
-    $default  reduce using rule 90 (primary_expression)
-
-
-State 34
-
-   91 primary_expression: FALSE .
-
-    $default  reduce using rule 91 (primary_expression)
-
-
-State 35
-
    89 primary_expression: STR_CONST .
 
     $default  reduce using rule 89 (primary_expression)
 
 
-State 36
+State 34
 
    87 primary_expression: I_CONST .
 
     $default  reduce using rule 87 (primary_expression)
 
 
-State 37
+State 35
 
    88 primary_expression: F_CONST .
 
     $default  reduce using rule 88 (primary_expression)
 
 
-State 38
+State 36
 
    86 primary_expression: ID .
 
     $default  reduce using rule 86 (primary_expression)
+
+
+State 37
+
+   90 primary_expression: TRUE .
+
+    $default  reduce using rule 90 (primary_expression)
+
+
+State 38
+
+   91 primary_expression: FALSE .
+
+    $default  reduce using rule 91 (primary_expression)
 
 
 State 39
@@ -997,12 +997,12 @@ State 63
     INC        shift, and go to state 31
     DEC        shift, and go to state 32
     SEMICOLON  shift, and go to state 114
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     expression                 go to state 115
     assignment_expression      go to state 77
@@ -1053,15 +1053,15 @@ State 67
     IF         shift, and go to state 60
     FOR        shift, and go to state 61
     WHILE      shift, and go to state 62
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
     RET        shift, and go to state 63
     CONT       shift, and go to state 64
     BREAK      shift, and go to state 65
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
     STRING     shift, and go to state 1
     INT        shift, and go to state 2
     FLOAT      shift, and go to state 3
@@ -1198,12 +1198,12 @@ State 82
 
     INC        shift, and go to state 31
     DEC        shift, and go to state 32
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     logical_and_expression     go to state 122
     equality_expression        go to state 44
@@ -1221,12 +1221,12 @@ State 83
 
     INC        shift, and go to state 31
     DEC        shift, and go to state 32
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     equality_expression        go to state 124
     relational_expression      go to state 45
@@ -1243,12 +1243,12 @@ State 84
 
     INC        shift, and go to state 31
     DEC        shift, and go to state 32
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     relational_expression      go to state 125
     additive_expression        go to state 46
@@ -1264,12 +1264,12 @@ State 85
 
     INC        shift, and go to state 31
     DEC        shift, and go to state 32
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     relational_expression      go to state 126
     additive_expression        go to state 46
@@ -1285,12 +1285,12 @@ State 86
 
     INC        shift, and go to state 31
     DEC        shift, and go to state 32
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     additive_expression        go to state 127
     multiplicative_expression  go to state 47
@@ -1305,12 +1305,12 @@ State 87
 
     INC        shift, and go to state 31
     DEC        shift, and go to state 32
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     additive_expression        go to state 128
     multiplicative_expression  go to state 47
@@ -1325,12 +1325,12 @@ State 88
 
     INC        shift, and go to state 31
     DEC        shift, and go to state 32
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     additive_expression        go to state 129
     multiplicative_expression  go to state 47
@@ -1345,12 +1345,12 @@ State 89
 
     INC        shift, and go to state 31
     DEC        shift, and go to state 32
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     additive_expression        go to state 130
     multiplicative_expression  go to state 47
@@ -1365,12 +1365,12 @@ State 90
 
     INC        shift, and go to state 31
     DEC        shift, and go to state 32
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     multiplicative_expression  go to state 131
     unary_expression           go to state 123
@@ -1384,12 +1384,12 @@ State 91
 
     INC        shift, and go to state 31
     DEC        shift, and go to state 32
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     multiplicative_expression  go to state 132
     unary_expression           go to state 123
@@ -1403,12 +1403,12 @@ State 92
 
     INC        shift, and go to state 31
     DEC        shift, and go to state 32
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     unary_expression    go to state 133
     postfix_expression  go to state 49
@@ -1421,12 +1421,12 @@ State 93
 
     INC        shift, and go to state 31
     DEC        shift, and go to state 32
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     unary_expression    go to state 134
     postfix_expression  go to state 49
@@ -1439,12 +1439,12 @@ State 94
 
     INC        shift, and go to state 31
     DEC        shift, and go to state 32
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     unary_expression    go to state 135
     postfix_expression  go to state 49
@@ -1499,12 +1499,12 @@ State 101
 
     INC        shift, and go to state 31
     DEC        shift, and go to state 32
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     assignment_expression      go to state 136
     conditional_expression     go to state 41
@@ -1541,12 +1541,12 @@ State 104
     INC        shift, and go to state 31
     DEC        shift, and go to state 32
     RB         shift, and go to state 137
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     assignment_expression      go to state 138
     conditional_expression     go to state 41
@@ -1625,12 +1625,12 @@ State 111
 
     INC        shift, and go to state 31
     DEC        shift, and go to state 32
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     expression                 go to state 144
     assignment_expression      go to state 77
@@ -1656,12 +1656,12 @@ State 112
     INC        shift, and go to state 31
     DEC        shift, and go to state 32
     SEMICOLON  shift, and go to state 58
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
     STRING     shift, and go to state 1
     INT        shift, and go to state 2
     FLOAT      shift, and go to state 3
@@ -1691,12 +1691,12 @@ State 113
 
     INC        shift, and go to state 31
     DEC        shift, and go to state 32
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     expression                 go to state 147
     assignment_expression      go to state 77
@@ -1762,12 +1762,12 @@ State 120
 
     INC        shift, and go to state 31
     DEC        shift, and go to state 32
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     assignment_expression      go to state 149
     conditional_expression     go to state 41
@@ -2023,12 +2023,12 @@ State 145
     INC        shift, and go to state 31
     DEC        shift, and go to state 32
     SEMICOLON  shift, and go to state 58
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     expression_statement       go to state 155
     expression                 go to state 71
@@ -2053,12 +2053,12 @@ State 146
     INC        shift, and go to state 31
     DEC        shift, and go to state 32
     SEMICOLON  shift, and go to state 58
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     expression_statement       go to state 156
     expression                 go to state 71
@@ -2111,12 +2111,12 @@ State 151
 
     INC        shift, and go to state 31
     DEC        shift, and go to state 32
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     assignment_expression      go to state 158
     conditional_expression     go to state 41
@@ -2158,15 +2158,15 @@ State 154
     IF         shift, and go to state 60
     FOR        shift, and go to state 61
     WHILE      shift, and go to state 62
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
     RET        shift, and go to state 63
     CONT       shift, and go to state 64
     BREAK      shift, and go to state 65
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     compound_statement         go to state 66
     statement                  go to state 161
@@ -2197,12 +2197,12 @@ State 155
     INC        shift, and go to state 31
     DEC        shift, and go to state 32
     RB         shift, and go to state 162
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     expression                 go to state 163
     assignment_expression      go to state 77
@@ -2226,12 +2226,12 @@ State 156
     INC        shift, and go to state 31
     DEC        shift, and go to state 32
     RB         shift, and go to state 164
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     expression                 go to state 165
     assignment_expression      go to state 77
@@ -2259,15 +2259,15 @@ State 157
     IF         shift, and go to state 60
     FOR        shift, and go to state 61
     WHILE      shift, and go to state 62
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
     RET        shift, and go to state 63
     CONT       shift, and go to state 64
     BREAK      shift, and go to state 65
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     compound_statement         go to state 66
     statement                  go to state 166
@@ -2334,15 +2334,15 @@ State 162
     IF         shift, and go to state 60
     FOR        shift, and go to state 61
     WHILE      shift, and go to state 62
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
     RET        shift, and go to state 63
     CONT       shift, and go to state 64
     BREAK      shift, and go to state 65
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     compound_statement         go to state 66
     statement                  go to state 168
@@ -2386,15 +2386,15 @@ State 164
     IF         shift, and go to state 60
     FOR        shift, and go to state 61
     WHILE      shift, and go to state 62
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
     RET        shift, and go to state 63
     CONT       shift, and go to state 64
     BREAK      shift, and go to state 65
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     compound_statement         go to state 66
     statement                  go to state 170
@@ -2445,15 +2445,15 @@ State 167
     IF         shift, and go to state 60
     FOR        shift, and go to state 61
     WHILE      shift, and go to state 62
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
     RET        shift, and go to state 63
     CONT       shift, and go to state 64
     BREAK      shift, and go to state 65
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     compound_statement         go to state 66
     statement                  go to state 172
@@ -2495,15 +2495,15 @@ State 169
     IF         shift, and go to state 60
     FOR        shift, and go to state 61
     WHILE      shift, and go to state 62
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
     RET        shift, and go to state 63
     CONT       shift, and go to state 64
     BREAK      shift, and go to state 65
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     compound_statement         go to state 66
     statement                  go to state 173
@@ -2545,15 +2545,15 @@ State 171
     IF         shift, and go to state 60
     FOR        shift, and go to state 61
     WHILE      shift, and go to state 62
-    TRUE       shift, and go to state 33
-    FALSE      shift, and go to state 34
     RET        shift, and go to state 63
     CONT       shift, and go to state 64
     BREAK      shift, and go to state 65
-    STR_CONST  shift, and go to state 35
-    I_CONST    shift, and go to state 36
-    F_CONST    shift, and go to state 37
-    ID         shift, and go to state 38
+    STR_CONST  shift, and go to state 33
+    I_CONST    shift, and go to state 34
+    F_CONST    shift, and go to state 35
+    ID         shift, and go to state 36
+    TRUE       shift, and go to state 37
+    FALSE      shift, and go to state 38
 
     compound_statement         go to state 66
     statement                  go to state 174

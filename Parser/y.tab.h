@@ -81,16 +81,16 @@ extern int yydebug;
     ELSE = 291,
     FOR = 292,
     WHILE = 293,
-    TRUE = 294,
-    FALSE = 295,
-    RET = 296,
-    CONT = 297,
-    BREAK = 298,
-    COMMENT = 299,
-    STR_CONST = 300,
-    I_CONST = 301,
-    F_CONST = 302,
-    ID = 303,
+    RET = 294,
+    CONT = 295,
+    BREAK = 296,
+    COMMENT = 297,
+    STR_CONST = 298,
+    I_CONST = 299,
+    F_CONST = 300,
+    ID = 301,
+    TRUE = 302,
+    FALSE = 303,
     STRING = 304,
     INT = 305,
     FLOAT = 306,
@@ -135,16 +135,16 @@ extern int yydebug;
 #define ELSE 291
 #define FOR 292
 #define WHILE 293
-#define TRUE 294
-#define FALSE 295
-#define RET 296
-#define CONT 297
-#define BREAK 298
-#define COMMENT 299
-#define STR_CONST 300
-#define I_CONST 301
-#define F_CONST 302
-#define ID 303
+#define RET 294
+#define CONT 295
+#define BREAK 296
+#define COMMENT 297
+#define STR_CONST 298
+#define I_CONST 299
+#define F_CONST 300
+#define ID 301
+#define TRUE 302
+#define FALSE 303
 #define STRING 304
 #define INT 305
 #define FLOAT 306
@@ -156,7 +156,7 @@ extern int yydebug;
 
 union YYSTYPE
 {
-#line 60 "compiler_hw2.y" /* yacc.c:1909  */
+#line 61 "compiler_hw2.y" /* yacc.c:1909  */
 
     int i_val;
     double f_val;
