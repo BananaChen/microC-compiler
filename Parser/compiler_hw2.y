@@ -8,11 +8,16 @@
 #define SYMBOL_TABLE_SIZE 200
 #define ERROR_MESSAGE_SIZE 200
 #define ERROR_BUFF_SIZE 100
+#define BUF_SIZE 256
 
 extern int yylineno;
 extern int yylex();
 extern char* yytext;   // Get current token from lex
-extern char buf[256];  // Get current code line from lex
+extern char buf[BUF_SIZE];  // Get current code line from lex
+
+extern printLine(int isError);
+extern int isYYError;
+int isSyntaxError = 0;
 
 int currScopeLevel = 0;
 int currIndex = -1;
@@ -74,6 +79,7 @@ void dump_symbol();
 %token PRINT 
 %token IF ELSE FOR WHILE
 //%token STRING INT FLOAT VOID BOOL
+%token TRUE FALSE
 %token RET CONT BREAK
 %token COMMENT
 
@@ -81,9 +87,7 @@ void dump_symbol();
 /*%token <i_val> I_CONST
 %token <f_val> F_CONST*/
 %token <string> STR_CONST I_CONST F_CONST
-%token <string> ID 
-%token <string> TRUE
-%token <string> FALSE
+%token <string> ID TRUE FALSE
 
 %token <string> STRING INT FLOAT VOID BOOL
 
@@ -109,8 +113,8 @@ void dump_symbol();
 
 program
     : external_declaration { /*printSymbolTable(0);*/  }
-    | program external_declaration { printSymbolTable(0); }
-    | 
+    | program external_declaration { /*printSymbolTable(0);*/ }
+    |
     ;
 
 external_declaration
@@ -206,8 +210,8 @@ declarator //direct_declarator
     : ID { $$ = $1; }
     | LB declarator RB //for what?
     | declarator LB parameter_list RB { /*differ funct declare from var declare*/ char tmp[VAR_SIZE] = "@@"; strcat(tmp, $1);
-                                        /*seperate parameter*/ strcat(tmp, "##"); $$ = strcat(tmp, $3); }
-    | declarator LB RB { /*differ funct declare from var declare*/ char tmp[VAR_SIZE] = "@@"; $$ = strcat(tmp, $1); }
+                                        /*seperate parameter*/ strcat(tmp, "##"); strcat(tmp, $3);  strcpy($$, tmp); }
+    | declarator LB RB { /*differ funct declare from var declare*/ char tmp[VAR_SIZE] = "@@"; strcat(tmp, $1); strcpy($$, tmp);}
     | declarator LB identifier_list RB
     ;
 
@@ -324,22 +328,40 @@ type_specifier // declaration_specifiers
 /* C code section */
 int main(int argc, char** argv)
 {
-    yylineno = 1;
-    printf("fuck u");
-    printf("%d: ", yylineno);
+    yylineno = 0;
+    // printf("%d: ", yylineno);
 
     yyparse();
-	printf("\nTotal lines: %d \n",yylineno);
+    if (isSyntaxError == 0) {
+        printFinalSymbolTable(0);
+    	printf("\n\nTotal lines: %d \n",yylineno);
+    }
 
     return 0;
 }
 
 void yyerror(char *s)
 {
-    printf("\n\n|-----------------------------------------------|\n");
-    printf("| Error found in line %d: %s\n", yylineno, buf);
-    printf("| %s", s);
-    printf("\n|-----------------------------------------------|\n");
+    if (strcmp(s, "syntax error") == 0) {
+        isSyntaxError = 1;
+        char tmpBuff[BUF_SIZE];
+        strcpy(tmpBuff, buf);
+        popErrorBuff();
+        isYYError = 1;
+        printf("\n|-----------------------------------------------|\n");
+        printf("| Error found in line %d: %s\n", yylineno+1, tmpBuff);
+        printf("| %s", s);
+        printf("\n|-----------------------------------------------|\n\n");
+        memset(tmpBuff, 0, 255);
+    } else {
+        isYYError = 1;
+        printLine(1);
+        printf("\n|-----------------------------------------------|\n");
+        printf("| Error found in line %d: %s\n", yylineno+1, buf);
+        printf("| %s", s);
+        printf("\n|-----------------------------------------------|\n\n");
+        memset(buf, 0, 255);
+    }
 }
 
 
@@ -349,12 +371,23 @@ void printSymbolTable(int startIndex) {
     printf("\n\n%-10s%-10s%-12s%-10s%-10s%-10s\n\n",
            "Index", "Name", "Kind", "Type", "Scope", "Attribute");
     for (int i = startIndex ; i <= currIndex ; ++i) {
-        printf("%-10d%-10s%-12s%-10s%-10d%-10s\n",
+        printf("%-10d%-10s%-12s%-10s%-10d%s\n",
            i-startIndex, symbolTable[i].name, symbolTable[i].entryType, 
            symbolTable[i].dataType, symbolTable[i].scopeLevel, symbolTable[i].formalParameters);
-    } 
+    }
 }
 
+/*Difference: \n */
+void printFinalSymbolTable(int startIndex) {
+
+    printf("\n%-10s%-10s%-12s%-10s%-10s%-10s\n\n",
+           "Index", "Name", "Kind", "Type", "Scope", "Attribute");
+    for (int i = startIndex ; i <= currIndex ; ++i) {
+        printf("%-10d%-10s%-12s%-10s%-10d%s\n",
+           i-startIndex, symbolTable[i].name, symbolTable[i].entryType, 
+           symbolTable[i].dataType, symbolTable[i].scopeLevel, symbolTable[i].formalParameters);
+    }
+}
 
 void init_symbolEntry(int i) {
     strcpy(symbolTable[i].name, "NaN");
@@ -368,7 +401,7 @@ void init_symbolEntry(int i) {
 /*insert*/
 void insert_var_declaration(char dataType[VAR_SIZE], char varNames[VAR_SIZE]) {
     char *pch = strtok(varNames, ",");
-    char *name;
+    char* name;
     char entryType[VAR_SIZE];
     int isPreDeclared = 0;
 
@@ -397,7 +430,6 @@ void insert_param_declaration(char dataType[VAR_SIZE], char paramName[VAR_SIZE])
 }
 
 void insert_funct_declaration(char* dataType, char* nameAndParam) {
-    // printf("[   ]%s\n", nameAndParam);
     if (nameAndParam[0] == '@' && nameAndParam[1] =='@') {
         memmove(nameAndParam, nameAndParam+2, strlen(nameAndParam));//remove "@@" infront funct declare(in [declarator] grammar)
     } else {
@@ -412,12 +444,13 @@ void insert_funct_declaration(char* dataType, char* nameAndParam) {
     if (pch == NULL) {
         pch = "";
     }
-
+    
     /*check if is predeclared, if predeclared, then dont insert*/
     for (int i = currIndex ; i >= 0 ; i--) {
         if (symbolTable[i].scopeLevel == currScopeLevel) {
             if (strcmp(symbolTable[i].name, functName) == 0 && symbolTable[i].isPreDeclared == 1 
                 && strcmp(symbolTable[i].entryType, "function") == 0) {
+                    symbolTable[i].isPreDeclared = 0;
                 return;
             }
         }
@@ -442,6 +475,7 @@ int checkRedeclare(char entryType[VAR_SIZE], char name[VAR_SIZE]) {
     char errorMessage[ERROR_MESSAGE_SIZE];
     for (int i = currIndex ; i >= 0 ; i--) {
         if (symbolTable[i].scopeLevel == currScopeLevel) {
+
             /*Semantic Error: Redeclare*/
             if (strcmp(symbolTable[i].name, name) == 0) {
                     strcpy(errorMessage, "Redeclared ");
@@ -473,7 +507,6 @@ void create_symbol() {}
 void insert_symbol(char name[VAR_SIZE], char entryType[VAR_SIZE], 
                     char dataType[VAR_SIZE], int scopeLevel, char formalParam[VAR_SIZE], int isPreDeclared) {
 
-    
     currIndex++;
     init_symbolEntry(currIndex);
 
@@ -483,10 +516,6 @@ void insert_symbol(char name[VAR_SIZE], char entryType[VAR_SIZE],
     symbolTable[currIndex].scopeLevel = scopeLevel;
     strcpy(symbolTable[currIndex].formalParameters, formalParam);
     symbolTable[currIndex].isPreDeclared = isPreDeclared;
-
-
-    // printf("[funct insert]current index: %d, %s\n", currIndex, symbolTable[currIndex].name);
-    //  printSymbolTable(0);
 }
 
 /*return 1 if no semantic error; return 0 if detected symantic error*/
@@ -536,11 +565,7 @@ int lookup_symbol(char varName[VAR_SIZE]) {
 
 void dump_symbol() {
     for (int i = currIndex ; i >= 0 ; --i) {
-        // if (currScopeLevel <= 0) {
-        //     return;
-        // }
-        
-        //printf("\n### i: %d, currIndex: %d, outerScopeLevel: %d, currScopeLevel: %d", i, currIndex, symbolTable[i].scopeLevel, currScopeLevel);
+
         if (symbolTable[i].scopeLevel == currScopeLevel - 1) {
             if (i != currIndex) {
                 printSymbolTable(i+1);
@@ -549,6 +574,5 @@ void dump_symbol() {
             }
             return;
         }
-        // printSymbolTable(0);
     }
 }
