@@ -419,7 +419,6 @@ void insert_param_declaration(char dataType[VAR_SIZE], char paramName[VAR_SIZE])
 }
 
 void insert_funct_declaration(char* dataType, char* nameAndParam) {
-    // printf("[   ]%s\n", nameAndParam);
     if (nameAndParam[0] == '@' && nameAndParam[1] =='@') {
         memmove(nameAndParam, nameAndParam+2, strlen(nameAndParam));//remove "@@" infront funct declare(in [declarator] grammar)
     } else {
@@ -440,6 +439,7 @@ void insert_funct_declaration(char* dataType, char* nameAndParam) {
         if (symbolTable[i].scopeLevel == currScopeLevel) {
             if (strcmp(symbolTable[i].name, functName) == 0 && symbolTable[i].isPreDeclared == 1 
                 && strcmp(symbolTable[i].entryType, "function") == 0) {
+                    symbolTable[i].isPreDeclared = 0;
                 return;
             }
         }
@@ -496,7 +496,6 @@ void create_symbol() {}
 void insert_symbol(char name[VAR_SIZE], char entryType[VAR_SIZE], 
                     char dataType[VAR_SIZE], int scopeLevel, char formalParam[VAR_SIZE], int isPreDeclared) {
 
-    
     currIndex++;
     init_symbolEntry(currIndex);
 
@@ -506,9 +505,6 @@ void insert_symbol(char name[VAR_SIZE], char entryType[VAR_SIZE],
     symbolTable[currIndex].scopeLevel = scopeLevel;
     strcpy(symbolTable[currIndex].formalParameters, formalParam);
     symbolTable[currIndex].isPreDeclared = isPreDeclared;
-
-    // printf("[funct insert]current index: %d, %s\n", currIndex, symbolTable[currIndex].name);
-    //  printSymbolTable(0);
 }
 
 /*return 1 if no semantic error; return 0 if detected symantic error*/
@@ -558,11 +554,7 @@ int lookup_symbol(char varName[VAR_SIZE]) {
 
 void dump_symbol() {
     for (int i = currIndex ; i >= 0 ; --i) {
-        // if (currScopeLevel <= 0) {
-        //     return;
-        // }
-        
-        //printf("\n### i: %d, currIndex: %d, outerScopeLevel: %d, currScopeLevel: %d", i, currIndex, symbolTable[i].scopeLevel, currScopeLevel);
+
         if (symbolTable[i].scopeLevel == currScopeLevel - 1) {
             if (i != currIndex) {
                 printSymbolTable(i+1);
@@ -571,6 +563,5 @@ void dump_symbol() {
             }
             return;
         }
-        // printSymbolTable(0);
     }
 }
