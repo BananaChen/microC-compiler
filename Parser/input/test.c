@@ -12,7 +12,7 @@ void apple (int a, int b) {
 
 int main () {
     hello();
-    apple(f, g);
-    happy();
+    apple(3);
+    happy(a){};
     c = 10;
 }
