@@ -18,7 +18,7 @@ void apple (int a) {
 int main () {
     hello();
     apple(3);
-    happy();
+    happy(a){};
     c = 10;
     
 

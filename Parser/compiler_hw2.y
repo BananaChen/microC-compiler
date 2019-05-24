@@ -8,11 +8,12 @@
 #define SYMBOL_TABLE_SIZE 200
 #define ERROR_MESSAGE_SIZE 200
 #define ERROR_BUFF_SIZE 100
+#define BUF_SIZE 256
 
 extern int yylineno;
 extern int yylex();
 extern char* yytext;   // Get current token from lex
-extern char buf[256];  // Get current code line from lex
+extern char buf[BUF_SIZE];  // Get current code line from lex
 
 extern printLine(int isError);
 extern int isYYError;
@@ -343,14 +344,24 @@ void yyerror(char *s)
 {
     if (strcmp(s, "syntax error") == 0) {
         isSyntaxError = 1;
+        char tmpBuff[BUF_SIZE];
+        strcpy(tmpBuff, buf);
+        popErrorBuff();
+        isYYError = 1;
+        printf("\n|-----------------------------------------------|\n");
+        printf("| Error found in line %d: %s\n", yylineno+1, tmpBuff);
+        printf("| %s", s);
+        printf("\n|-----------------------------------------------|\n\n");
+        memset(tmpBuff, 0, 255);
+    } else {
+        isYYError = 1;
+        printLine(1);
+        printf("\n|-----------------------------------------------|\n");
+        printf("| Error found in line %d: %s\n", yylineno+1, buf);
+        printf("| %s", s);
+        printf("\n|-----------------------------------------------|\n\n");
+        memset(buf, 0, 255);
     }
-    isYYError = 1;
-    printLine(1);
-    printf("\n|-----------------------------------------------|\n");
-    printf("| Error found in line %d: %s\n", yylineno+1, buf);
-    printf("| %s", s);
-    printf("\n|-----------------------------------------------|\n\n");
-    memset(buf, 0, 255);
 }
 
 
