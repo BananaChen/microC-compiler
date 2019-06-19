@@ -195,7 +195,10 @@ jump_statement
 print_func
     : PRINT LB STR_CONST RB SEMICOLON
     | PRINT LB ID RB SEMICOLON { 
-        lookup_symbol($3);
+        int isDeclared = lookup_symbol($3);
+        if (isDeclared) { 
+            gencode_loadAndFunctCall($3); 
+        }
     }
     ;
 
@@ -244,7 +247,7 @@ initializer
 
 assignment_expression
 	: conditional_expression
-	| unary_expression assignment_operator assignment_expression
+	| unary_expression_for_assignment assignment_operator assignment_expression
 	;
 
 conditional_expression
@@ -297,6 +300,13 @@ unary_expression
     | INC unary_expression
     | DEC unary_expression
     ;
+
+unary_expression_for_assignment
+    : postfix_expression { lookup_symbol($1); }
+    | INC unary_expression
+    | DEC unary_expression
+    ;
+
 
 postfix_expression
     : primary_expression { $$ = $1; }
