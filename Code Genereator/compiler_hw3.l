@@ -9,6 +9,7 @@ extern YYSTYPE yylval; //YYSTYPE
 char buf[BUF_SIZE];
 
 extern int currScopeLevel;
+extern int currLocalIndex;
 
 extern void dump_symbol();
 int isRCB = 0;
@@ -96,8 +97,8 @@ cPuls2Comment "//".*
 "bool"  	{ CONCAT; yylval.string = strdup(yytext); return BOOL; }
 
  /* boolean Keywords */
-"true"      { CONCAT; return TRUE; }
-"false"     { CONCAT; return FALSE; }
+"true"      { CONCAT; yylval.i_val = 1; return TRUE; }
+"false"     { CONCAT; yylval.i_val = 0; return FALSE; }
 
 "return"    { CONCAT; return RET; }
 "continue"  { CONCAT; return CONT; }
@@ -160,6 +161,10 @@ void printRCB() {
     dump_symbol();
     currScopeLevel--;
     memset(buf, 0, 255);
+
+    if (currScopeLevel == 0) {
+        currLocalIndex = -1;
+    }
 }
 
 int yywrap()

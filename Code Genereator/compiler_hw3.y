@@ -28,19 +28,23 @@ char errorBuff[ERROR_BUFF_SIZE][ERROR_MESSAGE_SIZE];
 int errorIndex = -1;
 
 typedef struct {
-    int index;
+    // int index;
     char name[VAR_SIZE];
     char entryType[VAR_SIZE];
     char dataType[VAR_SIZE];
     int scopeLevel;
     char formalParameters[VAR_SIZE];
     int isPreDeclared;
+    int localIndex;
 } SymbolEntry;
 
 SymbolEntry symbolTable[SYMBOL_TABLE_SIZE];
 
 /*Code Genetarion variable*/
-int cmp_label_index = 0;
+char typeBuff[10];
+int currLocalIndex = -1;
+int cmp_label_index = -1;
+
 
 /**/
 void printSymbolTable(int startIndex);
@@ -232,8 +236,22 @@ init_declarator_list
     ;
 
 init_declarator
-    : declarator { $$ = $1; }
-    | declarator ASGN initializer { $$ = $1; }
+    : declarator { 
+        if (currScopeLevel != 0) {
+            currLocalIndex++;
+        }
+        $$ = $1; 
+        if ($1[0] != '@' && $1[0] != '#') {
+
+        }
+        
+    }
+    | declarator ASGN initializer { 
+        if (currScopeLevel != 0) {
+            currLocalIndex++;
+        }
+        $$ = $1; 
+    }
     ;
 
 declarator //direct_declarator
@@ -251,7 +269,7 @@ parameter_list // parameter_type_list
     ;
 
 parameter_declaration
-    : type_specifier declarator { $$ = $1; insert_param_declaration($1, $2); }
+    : type_specifier declarator { $$ = $1; currLocalIndex++; insert_param_declaration($1, $2); }
     | type_specifier //for what?
     ;
 
@@ -367,11 +385,11 @@ assignment_operator
     | SUBASGN
 
 type_specifier // declaration_specifiers
-    : INT { $$ = $1; }
-    | FLOAT { $$ = $1; }
-    | BOOL { $$ = $1; }
-    | STRING { $$ = $1; }
-    | VOID { $$ = $1; }
+    : INT { $$ = $1; sprintf(typeBuff, "int"); }
+    | FLOAT { $$ = $1; sprintf(typeBuff, "float"); }
+    | BOOL { $$ = $1; sprintf(typeBuff, "bool"); }
+    | STRING { $$ = $1; sprintf(typeBuff, "string"); }
+    | VOID { $$ = $1; sprintf(typeBuff, "void"); }
 ;
 
 %%
@@ -434,7 +452,7 @@ void printSymbolTable(int startIndex) {
            "Index", "Name", "Kind", "Type", "Scope", "Attribute");
     for (int i = startIndex ; i <= currIndex ; ++i) {
         printf("%-10d%-10s%-12s%-10s%-10d%s\n",
-           symbolTable[i].index, symbolTable[i].name, symbolTable[i].entryType, 
+           i-startIndex, symbolTable[i].name, symbolTable[i].entryType, 
            symbolTable[i].dataType, symbolTable[i].scopeLevel, symbolTable[i].formalParameters);
     }
 }
@@ -446,19 +464,20 @@ void printFinalSymbolTable(int startIndex) {
            "Index", "Name", "Kind", "Type", "Scope", "Attribute");
     for (int i = startIndex ; i <= currIndex ; ++i) {
         printf("%-10d%-10s%-12s%-10s%-10d%s\n",
-           symbolTable[i].index, symbolTable[i].name, symbolTable[i].entryType, 
+           i-startIndex, symbolTable[i].name, symbolTable[i].entryType, 
            symbolTable[i].dataType, symbolTable[i].scopeLevel, symbolTable[i].formalParameters);
     }
 }
 
 void init_symbolEntry(int i) {
-    symbolTable[i].index = 0;
+    // symbolTable[i].index = 0;
     strcpy(symbolTable[i].name, "NaN");
     strcpy(symbolTable[i].entryType, "NaN");
     strcpy(symbolTable[i].dataType, "NaN");
     symbolTable[i].scopeLevel = -1;
     strcpy(symbolTable[i].formalParameters, "NaN");
     symbolTable[i].isPreDeclared = 0;
+    symbolTable[i].localIndex = 0;
 }
 
 /*insert*/
@@ -591,8 +610,9 @@ void insert_symbol(char name[VAR_SIZE], char entryType[VAR_SIZE],
     symbolTable[currIndex].scopeLevel = scopeLevel;
     strcpy(symbolTable[currIndex].formalParameters, formalParam);
     symbolTable[currIndex].isPreDeclared = isPreDeclared;
+    symbolTable[currIndex].localIndex = currLocalIndex;
 
-    symbolTable[currIndex].index = getCurrLevelIndex();
+    // symbolTable[currIndex].index = getCurrLevelIndex();
 }
 
 /*return 1 if no semantic error; return 0 if detected symantic error*/
@@ -642,7 +662,6 @@ int lookup_symbol(char varName[VAR_SIZE]) {
 
 void dump_symbol() {
     for (int i = currIndex ; i >= 0 ; --i) {
-
         if (symbolTable[i].scopeLevel == currScopeLevel - 1) {
             if (i != currIndex) {
                 printSymbolTable(i+1);
@@ -650,6 +669,10 @@ void dump_symbol() {
                 currIndex = i;
             }
             return;
+        } else if (i == 0) {
+            printSymbolTable(0);
+            clearSymbolEntries(0, currIndex);
+            currIndex = -1;
         }
     }
 }
@@ -670,30 +693,58 @@ int isStatic(int varIndex) {
     }
 }
 
-void gencode_store() {
+// void gencode_declaration(char* varName, char* type, int isInit) {
+//     if (currScopeLevel == 0) {
+//         if (isInit == 1) {
+//             if (strcmp(type, "int") == 0) {
+//                 fprintf(file, ".field public static %s %s = %d", varName, getTypeCode(type), yylval.i_val);
+//             } else if (strcmp(type, "float") == 0) {
+//                 fprintf(file, ".field public static %s %s = %d", varName, getTypeCode(type), yylval.f_val);
+//             } else if (strcmp(type, "string") == 0) {
+//                 fprintf(file, ".field public static %s %s = %d", varName, getTypeCode(type), yylval.string);
+//             } else if (strcmp(type, "bool") == 0) {
+//                 fprintf(file, ".field public static %s %s = %d", varName, getTypeCode(type), yylval.i_val);
+//             } else {
+//                 yyerror(strcat("Invalid type for golbal declaration"));
+//             }
 
-}
+//         } else if (isInit == 0) {
+//             fprintf(file, ".field public static %s %s", varName, getTypeCode(type));
+//         }
+//     } else {
+//         gencode_store(type);
+//     }
+// }
+
+// void gencode_store(char* type) {
+//     if (currScopeLevel == 0) {
+
+//     } else {
+
+//         if (strcmp(type, "int") == 0) {
+//             fprintf(file, "\tistore %d\n", );
+//         } else if (strcmp(type, "float") == 0) {
+//             fprintf(file, "\tfstore %d\n", );
+//         } else if (strcmp(type, "string") == 0) {
+//             fprintf(file, "\tastore %d\n", );
+//         } else if (strcmp(type, "bool") == 0) {
+//             fprintf(file, "\tistore %d\n", );
+//         } else {
+//             yyerror(strcat("Invalid type for declare"));
+//         }
+
+//     }
+
+// }
 
 /* Translate type to Jasmin representation code*/
 char* getTypeCode(char* type) {
-    // switch(type) {
-    //     case "int":
-    //         return "I";
-    //         break;
-    //     case "float":
-    //         return "F";
-    //         break;
-    //     case "string":
-    //         return "Ljava/lang/String;";
-    //         break;
-    //     case "bool":
-    //         return "Z";
-    //         break;
-    //     case "void":
-    //         return "V";
-    //     default:
-    //         break;
-    // }
+
+    if (strcmp(type, "int") == 0) { return "I"; } 
+    else if (strcmp(type, "float") == 0) { return "F"; } 
+    else if (strcmp(type, "string") == 0) { return "Ljava/lang/String;"; } 
+    else if (strcmp(type, "bool") == 0) { return "Z"; } 
+    else if (strcmp(type, "void") == 0) { return "V"; }
 }
 
 /* Return index of loaded variable*/
@@ -734,13 +785,13 @@ int gencode_load(char varName[VAR_SIZE]) {
         }
     } else {
         if (strcmp(symbolTable[loadedVarIndex].dataType, "int") == 0) {
-            fprintf(file, "\tiload %d\n", symbolTable[loadedVarIndex].index);
+            fprintf(file, "\tiload %d\n", symbolTable[loadedVarIndex].localIndex);
         } else if (strcmp(symbolTable[loadedVarIndex].dataType, "float") == 0) {
-            fprintf(file, "\tfload %d\n", symbolTable[loadedVarIndex].index);
+            fprintf(file, "\tfload %d\n", symbolTable[loadedVarIndex].localIndex);
         } else if (strcmp(symbolTable[loadedVarIndex].dataType, "string") == 0) {
-            fprintf(file, "\taload %d\n", symbolTable[loadedVarIndex].index);
+            fprintf(file, "\taload %d\n", symbolTable[loadedVarIndex].localIndex);
         } else if (strcmp(symbolTable[loadedVarIndex].dataType, "bool") == 0) {
-            fprintf(file, "\tiload %d\n", symbolTable[loadedVarIndex].index);
+            fprintf(file, "\tiload %d\n", symbolTable[loadedVarIndex].localIndex);
         } else {
             yyerror(strcat("Generate Code Load Failed, type = ", "symbolTable[loadedVarIndex].type"));
         }
