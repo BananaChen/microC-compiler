@@ -193,11 +193,21 @@ jump_statement
     ;
 
 print_func
-    : PRINT LB STR_CONST RB SEMICOLON
+    : PRINT LB I_CONST RB SEMICOLON {
+        gencode_print("int");
+    }
+    | PRINT LB F_CONST RB SEMICOLON {
+        gencode_print("float");
+    }
+    | PRINT LB STR_CONST RB SEMICOLON {
+        gencode_print("string");
+    }
     | PRINT LB ID RB SEMICOLON { 
         int isDeclared = lookup_symbol($3);
         if (isDeclared) { 
-            gencode_loadAndFunctCall($3); 
+            int varIndex = gencode_loadAndFunctCall($3);
+            char *type = symbolTable[varIndex].dataType;
+            gencode_print(type);
         }
     }
     ;
@@ -641,6 +651,23 @@ int isStatic(int varIndex) {
     }
 }
 
+void gencode_print(char *type) {
+    fprintf(file, "\tgetstatic java/lang/System/out Ljava/io/PrintStream;\n");
+    fprintf(file, "\tswap\n");
+
+    if (strcmp(type, "int") == 0) {
+        fprintf(file, "\tinvokevirtual java/io/PrintStream/println(I)V\n");
+    } else if (strcmp(type, "float") == 0) {
+        fprintf(file, "\tinvokevirtual java/io/PrintStream/println(F)V\n");
+    } else if (strcmp(type, "string") == 0) {
+        fprintf(file, "\tinvokevirtual java/io/PrintStream/println(Ljava/lang/String;)V\n");
+    } else if (strcmp(type, "bool") == 0) {
+        fprintf(file, "\tinvokevirtual java/io/PrintStream/println(I)V\n");
+    } else {
+        yyerror(strcat("Can't print, type = ", "symbolTable[loadedVarIndex].type"));
+    }
+}
+
 void gencode_store() {
 
 }
@@ -667,7 +694,8 @@ char* getTypeCode(char* type) {
     // }
 }
 
-void gencode_load(char varName[VAR_SIZE]) {
+/* Return index of loaded variable*/
+int gencode_load(char varName[VAR_SIZE]) {
     int loadedVarIndex = -1;
     int tmpIndex = currIndex;
     for (int i = currIndex ; symbolTable[i].scopeLevel == currScopeLevel ; --i) {
@@ -687,6 +715,7 @@ void gencode_load(char varName[VAR_SIZE]) {
 
     if (loadedVarIndex == -1) {
         yyerror(strcat("ERROR: var %s not defined", varName));
+        return;
     }
 
     if (isStatic(loadedVarIndex)) {
@@ -714,9 +743,11 @@ void gencode_load(char varName[VAR_SIZE]) {
             yyerror(strcat("Generate Code Load Failed, type = ", "symbolTable[loadedVarIndex].type"));
         }
     }
+    return loadedVarIndex;
 }
 
-void gencode_loadAndFunctCall(char varName[VAR_SIZE]) {
+/* Return index of loaded variable*/
+int gencode_loadAndFunctCall(char varName[VAR_SIZE]) {
 
     if (varName[0] == '@') { // if it is const
         return;
@@ -724,9 +755,7 @@ void gencode_loadAndFunctCall(char varName[VAR_SIZE]) {
         memmove(varName, varName+1, strlen(varName));
 
     } else { // if it is variable
-        gencode_load(varName);
+        int loadedVarIndex = gencode_load(varName);
+        return loadedVarIndex;
     }
-
-
-    
 }
