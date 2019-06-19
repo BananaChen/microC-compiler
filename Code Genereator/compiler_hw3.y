@@ -194,7 +194,9 @@ jump_statement
 
 print_func
     : PRINT LB STR_CONST RB SEMICOLON
-    | PRINT LB ID RB SEMICOLON { lookup_symbol($3); popErrorBuff(); }
+    | PRINT LB ID RB SEMICOLON { 
+        lookup_symbol($3);
+    }
     ;
 
 //------------------
@@ -286,7 +288,12 @@ multiplicative_expression
     | multiplicative_expression MOD unary_expression
 
 unary_expression
-    : postfix_expression { lookup_symbol($1); }
+    : postfix_expression { 
+        int isDeclared = lookup_symbol($1); 
+        if (isDeclared) { 
+            gencode_loadAndFunctCall($1); 
+        }
+     }
     | INC unary_expression
     | DEC unary_expression
     ;
@@ -301,7 +308,7 @@ postfix_expression
 
 primary_expression
     : ID { $$ = $1; }
-    | I_CONST { $$ = "@"; fprintf(file, "\tldc %d\n", $1); }
+    | I_CONST { /*if @, means that it is const*/ $$ = "@"; fprintf(file, "\tldc %d\n", $1); }
     | F_CONST { $$ = "@"; fprintf(file, "\tldc %f\n", $1); }
     | STR_CONST { $$ = "@"; fprintf(file, "\tldc %s\n", $1); }
     | TRUE { $$ = "@"; }
@@ -555,7 +562,7 @@ int lookup_symbol(char varName[VAR_SIZE]) {
     char entryType[VAR_SIZE];
     char errorMessage[ERROR_MESSAGE_SIZE];
 
-    if (varName[0] == '@') {
+    if (varName[0] == '@') { // if it is constant
         return 1;
     } else if (varName[0] == '#') {
         strcpy(entryType, "function");
@@ -615,8 +622,9 @@ void dump_symbol() {
  * |                    Code Generate Section                      |
  * =================================================================
  */
-int isStatic() {
-    if (currScopeLevel == 0) {
+int isStatic(int varIndex) {
+    
+    if (symbolTable[varIndex].scopeLevel == 0) {
         return 1;
     } else {
         return 0;
@@ -625,4 +633,90 @@ int isStatic() {
 
 void gencode_store() {
 
+}
+
+/* Translate type to Jasmin representation code*/
+char* getTypeCode(char* type) {
+    // switch(type) {
+    //     case "int":
+    //         return "I";
+    //         break;
+    //     case "float":
+    //         return "F";
+    //         break;
+    //     case "string":
+    //         return "Ljava/lang/String;";
+    //         break;
+    //     case "bool":
+    //         return "Z";
+    //         break;
+    //     case "void":
+    //         return "V";
+    //     default:
+    //         break;
+    // }
+}
+
+void gencode_load(char varName[VAR_SIZE]) {
+    int loadedVarIndex = -1;
+    int tmpIndex = currIndex;
+    for (int i = currIndex ; symbolTable[i].scopeLevel == currScopeLevel ; --i) {
+        tmpIndex = i;
+        if (strcmp(symbolTable[i].name, varName) == 0) {
+                loadedVarIndex = i;
+                break;
+        }
+    }
+    for (int i = tmpIndex ; i >= 0 ; --i) {
+        if (symbolTable[i].scopeLevel < currScopeLevel 
+            && strcmp(symbolTable[i].name, varName) == 0) {
+                loadedVarIndex = i;
+                break;
+        }
+    }
+
+    if (loadedVarIndex == -1) {
+        yyerror(strcat("ERROR: var %s not defined", varName));
+    }
+
+    if (isStatic(loadedVarIndex)) {
+        if (strcmp(symbolTable[loadedVarIndex].dataType, "int") == 0) {
+            fprintf(file, "\tgetstatic compiler_hw3/%s I\n", symbolTable[loadedVarIndex].name);
+        } else if (strcmp(symbolTable[loadedVarIndex].dataType, "float") == 0) {
+            fprintf(file, "\tgetstatic compiler_hw3/%s F\n", symbolTable[loadedVarIndex].name);
+        } else if (strcmp(symbolTable[loadedVarIndex].dataType, "string") == 0) {
+            fprintf(file, "\tgetstatic compiler_hw3/%s Ljava/lang/String;\n", symbolTable[loadedVarIndex].name);
+        } else if (strcmp(symbolTable[loadedVarIndex].dataType, "bool") == 0) {
+            fprintf(file, "\tgetstatic compiler_hw3/%s Z\n", symbolTable[loadedVarIndex].name);
+        } else {
+            yyerror(strcat("Generate Code Load Failed, type = ", "symbolTable[loadedVarIndex].type"));
+        }
+    } else {
+        if (strcmp(symbolTable[loadedVarIndex].dataType, "int") == 0) {
+            fprintf(file, "\tiload %d\n", symbolTable[loadedVarIndex].index);
+        } else if (strcmp(symbolTable[loadedVarIndex].dataType, "float") == 0) {
+            fprintf(file, "\tfload %d\n", symbolTable[loadedVarIndex].index);
+        } else if (strcmp(symbolTable[loadedVarIndex].dataType, "string") == 0) {
+            fprintf(file, "\taload %d\n", symbolTable[loadedVarIndex].index);
+        } else if (strcmp(symbolTable[loadedVarIndex].dataType, "bool") == 0) {
+            fprintf(file, "\tiload %d\n", symbolTable[loadedVarIndex].index);
+        } else {
+            yyerror(strcat("Generate Code Load Failed, type = ", "symbolTable[loadedVarIndex].type"));
+        }
+    }
+}
+
+void gencode_loadAndFunctCall(char varName[VAR_SIZE]) {
+
+    if (varName[0] == '@') { // if it is const
+        return;
+    } else if (varName[0] == '#') { // if it is function
+        memmove(varName, varName+1, strlen(varName));
+
+    } else { // if it is variable
+        gencode_load(varName);
+    }
+
+
+    
 }
