@@ -62,7 +62,14 @@ void dump_symbol();
 
 
 /* code generation functions, just an example! */
+int isStatic(int varIndex);
 void gencode_store();
+int gencode_load(char varName[VAR_SIZE]);
+int gencode_loadAndFunctCall(char varName[VAR_SIZE]);
+
+void gencode_print(char *type);
+
+char* gencode_arihmeticExpr(char* leftType, char* rightType, char* instruction);
 
 %}
 
@@ -84,8 +91,6 @@ void gencode_store();
 %token LB RB LCB RCB LSB RSB COMMA SEMICOLON QUOTA
 %token PRINT 
 %token IF ELSE FOR WHILE
-//%token STRING INT FLOAT VOID BOOL
-%token TRUE FALSE
 %token RET CONT BREAK
 %token COMMENT
 
@@ -110,7 +115,7 @@ void gencode_store();
 %type <string> init_declarator
 %type <string> init_declarator_list
 
-%type <string> postfix_expression
+%type <string> postfix_expression unary_expression multiplicative_expression additive_expression
 /* Yacc will start at this nonterminal */
 %start program
 
@@ -289,31 +294,40 @@ relational_expression
     ;
 
 additive_expression
-    : multiplicative_expression
-    | additive_expression ADD multiplicative_expression
-    | additive_expression SUB multiplicative_expression
+    : multiplicative_expression { $$ = $1; }
+    | additive_expression ADD multiplicative_expression { $$ = gencode_arihmeticExpr($1, $3, "add"); }
+    | additive_expression SUB multiplicative_expression { $$ = gencode_arihmeticExpr($1, $3, "sub"); }
     ;
 
 multiplicative_expression
-    : unary_expression
-    | multiplicative_expression MUL unary_expression
-    | multiplicative_expression DIV unary_expression
+    : unary_expression { $$ = $1; }
+    | multiplicative_expression MUL unary_expression { $$ = gencode_arihmeticExpr($1, $3, "mul"); }
+    | multiplicative_expression DIV unary_expression { $$ = gencode_arihmeticExpr($1, $3, "div"); }
     | multiplicative_expression MOD unary_expression
 
+/*$$ = return data type of unary_expression*/
 unary_expression
-    : postfix_expression { 
-        int isDeclared = lookup_symbol($1); 
-        if (isDeclared) { 
-            gencode_loadAndFunctCall($1); 
+    : postfix_expression {
+        if ($1[0] == '@') {
+            $$ = $1 + 1;
+        } else {
+            int isDeclared = lookup_symbol($1);
+            if (isDeclared) {
+                int loadedVarIndex = gencode_loadAndFunctCall($1);
+                if (loadedVarIndex != -1) {
+                    $$ = symbolTable[loadedVarIndex].dataType;
+                }
+            }
         }
+
      }
-    | INC unary_expression
-    | DEC unary_expression
+    | INC unary_expression { $$ = $2; }
+    | DEC unary_expression { $$ = $2; }
     ;
 
 unary_expression_for_assignment
     : postfix_expression { lookup_symbol($1); }
-    | INC unary_expression
+    | INC unary_expression //================================================ delete '@' in const
     | DEC unary_expression
     ;
 
@@ -321,18 +335,18 @@ unary_expression_for_assignment
 postfix_expression
     : primary_expression { $$ = $1; }
     | postfix_expression LB RB { char tmp[VAR_SIZE] = "#"; $$ =strcat(tmp, $1); }
-    | postfix_expression LB argument_expression_list RB { char tmp[VAR_SIZE] = "#"; $$ =strcat(tmp, $1); }
+    | postfix_expression LB argument_expression_list RB { char tmp[VAR_SIZE] = "#"; $$ = strcat(tmp, $1); }
     | postfix_expression INC { $$ = $1; }
     | postfix_expression DEC { $$ = $1; }
     ;
 
 primary_expression
     : ID { $$ = $1; }
-    | I_CONST { /*if @, means that it is const*/ $$ = "@"; fprintf(file, "\tldc %d\n", $1); }
-    | F_CONST { $$ = "@"; fprintf(file, "\tldc %f\n", $1); }
-    | STR_CONST { $$ = "@"; fprintf(file, "\tldc %s\n", $1); }
-    | TRUE { $$ = "@"; }
-    | FALSE { $$ = "@"; }
+    | I_CONST {  $$ = "@int"; fprintf(file, "\tldc %d\n", yylval.i_val); } /*if @, means that it is const*/
+    | F_CONST { $$ = "@float"; fprintf(file, "\tldc %f\n", yylval.f_val); }
+    | STR_CONST { $$ = "@string"; fprintf(file, "\tldc %s\n", $1); }
+    | TRUE { $$ = "@bool"; }
+    | FALSE { $$ = "@bool"; }
     ;
 
 argument_expression_list
@@ -642,29 +656,13 @@ void dump_symbol() {
  * |                    Code Generate Section                      |
  * =================================================================
  */
+
 int isStatic(int varIndex) {
     
     if (symbolTable[varIndex].scopeLevel == 0) {
         return 1;
     } else {
         return 0;
-    }
-}
-
-void gencode_print(char *type) {
-    fprintf(file, "\tgetstatic java/lang/System/out Ljava/io/PrintStream;\n");
-    fprintf(file, "\tswap\n");
-
-    if (strcmp(type, "int") == 0) {
-        fprintf(file, "\tinvokevirtual java/io/PrintStream/println(I)V\n");
-    } else if (strcmp(type, "float") == 0) {
-        fprintf(file, "\tinvokevirtual java/io/PrintStream/println(F)V\n");
-    } else if (strcmp(type, "string") == 0) {
-        fprintf(file, "\tinvokevirtual java/io/PrintStream/println(Ljava/lang/String;)V\n");
-    } else if (strcmp(type, "bool") == 0) {
-        fprintf(file, "\tinvokevirtual java/io/PrintStream/println(I)V\n");
-    } else {
-        yyerror(strcat("Can't print, type = ", "symbolTable[loadedVarIndex].type"));
     }
 }
 
@@ -750,12 +748,57 @@ int gencode_load(char varName[VAR_SIZE]) {
 int gencode_loadAndFunctCall(char varName[VAR_SIZE]) {
 
     if (varName[0] == '@') { // if it is const
-        return;
+        return -1;
     } else if (varName[0] == '#') { // if it is function
         memmove(varName, varName+1, strlen(varName));
+        return -1;
 
     } else { // if it is variable
         int loadedVarIndex = gencode_load(varName);
         return loadedVarIndex;
     }
+}
+
+void gencode_print(char *type) {
+    fprintf(file, "\tgetstatic java/lang/System/out Ljava/io/PrintStream;\n");
+    fprintf(file, "\tswap\n");
+
+    if (strcmp(type, "int") == 0) {
+        fprintf(file, "\tinvokevirtual java/io/PrintStream/println(I)V\n");
+    } else if (strcmp(type, "float") == 0) {
+        fprintf(file, "\tinvokevirtual java/io/PrintStream/println(F)V\n");
+    } else if (strcmp(type, "string") == 0) {
+        fprintf(file, "\tinvokevirtual java/io/PrintStream/println(Ljava/lang/String;)V\n");
+    } else if (strcmp(type, "bool") == 0) {
+        fprintf(file, "\tinvokevirtual java/io/PrintStream/println(I)V\n");
+    } else {
+        yyerror(strcat("Can't print, type = ", "symbolTable[loadedVarIndex].type"));
+    }
+}
+
+/*for expression*/
+char* gencode_arihmeticExpr(char* leftType, char* rightType, char* instruction) {
+    if(strcmp(leftType, "int") == 0 && strcmp(rightType, "int") == 0){
+        fprintf(file, "\ti%s\n", instruction);
+        return "int";
+	}
+	else if(strcmp(leftType, "int") == 0 && strcmp(rightType, "float") == 0){
+        fprintf(file, "\tswap\n");
+        fprintf(file, "\ti2f\n");
+        fprintf(file, "\tswap\n");
+        fprintf(file, "\tf%s\n", instruction);
+        return "float";
+	}
+	else if(strcmp(leftType, "float") == 0 && strcmp(rightType, "int") == 0){
+		fprintf(file, "\ti2f\n");
+		fprintf(file, "\tf%s\n", instruction);
+        return "float";
+	}
+	else if(strcmp(leftType, "float") == 0 && strcmp(rightType, "float") == 0){
+		fprintf(file, "\tf%s\n", instruction);
+        return "float";
+	}
+	else{
+		yyerror(strcat("Unsupported type for doing %s", instruction));
+	}
 }
