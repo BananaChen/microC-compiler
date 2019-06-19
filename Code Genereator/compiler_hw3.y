@@ -39,7 +39,10 @@ typedef struct {
 
 SymbolEntry symbolTable[SYMBOL_TABLE_SIZE];
 
+/*Code Genetarion variable*/
+int cmp_label_index = 0;
 
+/**/
 void printSymbolTable(int startIndex);
 void init_symbolEntry();
 
@@ -116,6 +119,7 @@ char* gencode_modExpr(char* leftType, char* rightType);
 %type <string> init_declarator_list
 
 %type <string> postfix_expression unary_expression multiplicative_expression additive_expression
+%type <string> equality_expression relational_expression
 /* Yacc will start at this nonterminal */
 %start program
 
@@ -280,17 +284,17 @@ logical_and_expression
     ;
 
 equality_expression
-    : relational_expression
-    | equality_expression EQ relational_expression
-    | equality_expression NE relational_expression
+    : relational_expression { $$ = $1; }
+    | equality_expression EQ relational_expression { gencode_cmpExpr($1, $3, "EQ"); $$ = "bool"; }
+    | equality_expression NE relational_expression { gencode_cmpExpr($1, $3, "NE"); $$ = "bool"; }
     ;
 
 relational_expression
-    : additive_expression
-    | relational_expression MT additive_expression
-    | relational_expression LT additive_expression
-    | relational_expression MTE additive_expression
-    | relational_expression LTE additive_expression
+    : additive_expression { $$ =$1; }
+    | relational_expression MT additive_expression { gencode_cmpExpr($1, $3, "MT"); $$ = "bool"; }
+    | relational_expression LT additive_expression { gencode_cmpExpr($1, $3, "LT"); $$ = "bool"; }
+    | relational_expression MTE additive_expression { gencode_cmpExpr($1, $3, "MTE"); $$ = "bool"; }
+    | relational_expression LTE additive_expression { gencode_cmpExpr($1, $3, "LTE"); $$ = "bool"; }
     ;
 
 additive_expression
@@ -810,4 +814,56 @@ char* gencode_modExpr(char* leftType, char* rightType) {
 	} else {
         yyerror("Unsupported type for MOD");
     }
+}
+
+void gencode_cmpExpr(char* leftType, char* rightType, char* instruction){
+
+    if(strcmp(leftType, "int") == 0 && strcmp(rightType, "int") == 0){
+        fprintf(file, "\ti2f\n");
+        fprintf(file, "\tswap\n");
+        fprintf(file, "\ti2f\n");
+        fprintf(file, "\tswap\n");
+	}
+	else if(strcmp(leftType, "int") == 0 && strcmp(rightType, "float") == 0){
+        fprintf(file, "\tswap\n");
+        fprintf(file, "\ti2f\n");
+        fprintf(file, "\tswap\n");
+	}
+	else if(strcmp(leftType, "float") == 0 && strcmp(rightType, "int") == 0){
+		fprintf(file, "\ti2f\n");
+	}
+	else if(strcmp(leftType, "float") == 0 && strcmp(rightType, "float") == 0){
+
+	}
+	else{
+		yyerror(strcat("Unsupported type for doing %s", instruction));
+	}
+
+
+	fprintf(file, "\tfcmpl\n");
+
+	char* jasmin_instruction;
+
+    if (strcmp(instruction, "LT") == 0) {
+        jasmin_instruction = "iflt";
+    } else if (strcmp(instruction, "MT") == 0) {
+        jasmin_instruction = "ifgt";
+    } else if (strcmp(instruction, "LTE") == 0) {
+        jasmin_instruction = "ifle";
+    } else if (strcmp(instruction, "MTE") == 0) {
+        jasmin_instruction = "ifge";
+    } else if (strcmp(instruction, "EQ") == 0) {
+        jasmin_instruction = "ifeq";
+    } else if (strcmp(instruction, "NE") == 0) {
+        jasmin_instruction = "ifne";
+    }
+
+    fprintf(file, "\t%s L_%s_TRUE_%d\n", jasmin_instruction, instruction, cmp_label_index);
+    fprintf(file, "\ticonst_0\n");
+    fprintf(file, "\tgoto L_%s_FALSE_%d\n", instruction, cmp_label_index);
+    fprintf(file, "L_%s_TRUE_%d:\n", instruction, cmp_label_index);
+    fprintf(file, "\ticonst_1\n");
+    fprintf(file, "L_%s_FALSE_%d:\n", instruction, cmp_label_index);
+
+	cmp_label_index++;
 }
