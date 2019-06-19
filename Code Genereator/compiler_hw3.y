@@ -17,7 +17,7 @@ extern char buf[BUF_SIZE];  // Get current code line from lex
 
 FILE *file; // To generate .j file for Jasmin
 
-extern printLine(int isError);
+extern void printLine(int isError);
 extern int isYYError;
 int isSyntaxError = 0;
 
@@ -70,7 +70,7 @@ int gencode_loadAndFunctCall(char varName[VAR_SIZE]);
 void gencode_print(char *type);
 
 char* gencode_arihmeticExpr(char* leftType, char* rightType, char* instruction);
-
+char* gencode_modExpr(char* leftType, char* rightType);
 %}
 
 /* Use variable or self-defined structure to represent
@@ -303,7 +303,7 @@ multiplicative_expression
     : unary_expression { $$ = $1; }
     | multiplicative_expression MUL unary_expression { $$ = gencode_arihmeticExpr($1, $3, "mul"); }
     | multiplicative_expression DIV unary_expression { $$ = gencode_arihmeticExpr($1, $3, "div"); }
-    | multiplicative_expression MOD unary_expression
+    | multiplicative_expression MOD unary_expression { $$ = gencode_modExpr($1, $3); }
 
 /*$$ = return data type of unary_expression*/
 unary_expression
@@ -801,4 +801,13 @@ char* gencode_arihmeticExpr(char* leftType, char* rightType, char* instruction) 
 	else{
 		yyerror(strcat("Unsupported type for doing %s", instruction));
 	}
+}
+
+char* gencode_modExpr(char* leftType, char* rightType) {
+    if(strcmp(leftType, "int") == 0 && strcmp(rightType, "int") == 0){
+        fprintf(file, "\tirem\n");
+        return "int";
+	} else {
+        yyerror("Unsupported type for MOD");
+    }
 }

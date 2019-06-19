@@ -15,6 +15,7 @@ int isRCB = 0;
 int isYYError = 0;
 
 void printLine(int isError);
+void printRCB();
 
 /* This macro is used to record code line */
 #define CONCAT { strncat(buf, yytext, BUF_SIZE - strlen(buf) - 1); }
