@@ -28,7 +28,7 @@ char errorBuff[ERROR_BUFF_SIZE][ERROR_MESSAGE_SIZE];
 int errorIndex = -1;
 
 typedef struct {
-    //int index;
+    int index;
     char name[VAR_SIZE];
     char entryType[VAR_SIZE];
     char dataType[VAR_SIZE];
@@ -62,7 +62,7 @@ void dump_symbol();
 
 
 /* code generation functions, just an example! */
-void gencode_function();
+void gencode_store();
 
 %}
 
@@ -301,9 +301,9 @@ postfix_expression
 
 primary_expression
     : ID { $$ = $1; }
-    | I_CONST { $$ = "@"; }
-    | F_CONST { $$ = "@"; }
-    | STR_CONST { $$ = "@"; }
+    | I_CONST { $$ = "@"; fprintf(file, "\tldc %d\n", $1); }
+    | F_CONST { $$ = "@"; fprintf(file, "\tldc %f\n", $1); }
+    | STR_CONST { $$ = "@"; fprintf(file, "\tldc %s\n", $1); }
     | TRUE { $$ = "@"; }
     | FALSE { $$ = "@"; }
     ;
@@ -322,11 +322,11 @@ assignment_operator
     | SUBASGN
 
 type_specifier // declaration_specifiers
-    : INT
-    | FLOAT
-    | BOOL
-    | STRING
-    | VOID
+    : INT { $$ = $1; }
+    | FLOAT { $$ = $1; }
+    | BOOL { $$ = $1; }
+    | STRING { $$ = $1; }
+    | VOID { $$ = $1; }
 ;
 
 %%
@@ -389,7 +389,7 @@ void printSymbolTable(int startIndex) {
            "Index", "Name", "Kind", "Type", "Scope", "Attribute");
     for (int i = startIndex ; i <= currIndex ; ++i) {
         printf("%-10d%-10s%-12s%-10s%-10d%s\n",
-           i-startIndex, symbolTable[i].name, symbolTable[i].entryType, 
+           symbolTable[i].index, symbolTable[i].name, symbolTable[i].entryType, 
            symbolTable[i].dataType, symbolTable[i].scopeLevel, symbolTable[i].formalParameters);
     }
 }
@@ -401,12 +401,13 @@ void printFinalSymbolTable(int startIndex) {
            "Index", "Name", "Kind", "Type", "Scope", "Attribute");
     for (int i = startIndex ; i <= currIndex ; ++i) {
         printf("%-10d%-10s%-12s%-10s%-10d%s\n",
-           i-startIndex, symbolTable[i].name, symbolTable[i].entryType, 
+           symbolTable[i].index, symbolTable[i].name, symbolTable[i].entryType, 
            symbolTable[i].dataType, symbolTable[i].scopeLevel, symbolTable[i].formalParameters);
     }
 }
 
 void init_symbolEntry(int i) {
+    symbolTable[i].index = 0;
     strcpy(symbolTable[i].name, "NaN");
     strcpy(symbolTable[i].entryType, "NaN");
     strcpy(symbolTable[i].dataType, "NaN");
@@ -520,6 +521,18 @@ void pushErrorBuff(char errorMessage[ERROR_MESSAGE_SIZE]) {
     strcpy(errorBuff[errorIndex], errorMessage);
 }
 
+int getCurrLevelIndex() {
+    int currLevelIndex = -1;
+    for (int i = currIndex ; i >= 0 ; --i) {
+        if (symbolTable[i].scopeLevel == currScopeLevel) {
+            currLevelIndex++;
+        } else {
+            break;
+        }
+    }
+    return currLevelIndex;
+}
+
 void create_symbol() {}
 void insert_symbol(char name[VAR_SIZE], char entryType[VAR_SIZE], 
                     char dataType[VAR_SIZE], int scopeLevel, char formalParam[VAR_SIZE], int isPreDeclared) {
@@ -533,6 +546,8 @@ void insert_symbol(char name[VAR_SIZE], char entryType[VAR_SIZE],
     symbolTable[currIndex].scopeLevel = scopeLevel;
     strcpy(symbolTable[currIndex].formalParameters, formalParam);
     symbolTable[currIndex].isPreDeclared = isPreDeclared;
+
+    symbolTable[currIndex].index = getCurrLevelIndex();
 }
 
 /*return 1 if no semantic error; return 0 if detected symantic error*/
@@ -592,4 +607,22 @@ void dump_symbol() {
             return;
         }
     }
+}
+
+
+/* 
+ * =================================================================
+ * |                    Code Generate Section                      |
+ * =================================================================
+ */
+int isStatic() {
+    if (currScopeLevel == 0) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+void gencode_store() {
+
 }

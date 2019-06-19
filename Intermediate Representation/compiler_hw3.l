@@ -103,9 +103,9 @@ cPuls2Comment "//".*
 "break"     { CONCAT; return BREAK; }
 
  /* Number Constant */
-{integer}	{ CONCAT; return I_CONST; }
-{float}	    { CONCAT; return F_CONST; }
-{string}    { CONCAT; return STR_CONST;}
+{integer}	{ CONCAT; yylval.i_val = atoi(yytext); return I_CONST; }
+{float}	    { CONCAT; yylval.f_val = atof(yytext); return F_CONST; }
+{string}    { CONCAT; yylval.string = strdup(yytext); return STR_CONST;}
 
  /* Variable ID */
 {id}       { CONCAT; yylval.string = strdup(yytext); return ID; }
