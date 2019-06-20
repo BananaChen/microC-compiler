@@ -80,7 +80,9 @@ void gencode_print(char *type);
 char* gencode_arihmeticExpr(char* leftType, char* rightType, char* instruction);
 char* gencode_modExpr(char* leftType, char* rightType);
 
+char* getVarTypeFromSymbolTable(char varName[VAR_SIZE]);
 char* gencode_asgnExpr_typeCast(char* leftType, char* rightType);
+char* gencode_asgnExpr(char* leftVarName[VAR_SIZE], char* leftType, char* rightType, char* instruction);
 %}
 
 /* Use variable or self-defined structure to represent
@@ -131,6 +133,7 @@ char* gencode_asgnExpr_typeCast(char* leftType, char* rightType);
 %type <string> logical_and_expression logical_or_expression conditional_expression assignment_expression
 %type <string> initializer
 
+%type <string> assignment_operator
 /* Yacc will start at this nonterminal */
 %start program
 
@@ -301,7 +304,15 @@ initializer
 
 assignment_expression
 	: conditional_expression { $$ = $1; }
-	| unary_expression_for_assignment assignment_operator assignment_expression //-------------------------- add $$
+	| unary_expression_for_assignment assignment_operator assignment_expression {
+        if ($1[0] != '@') {
+            char* leftType = getVarTypeFromSymbolTable($1);
+            $$ = gencode_asgnExpr($1, leftType, $3, $2);
+
+        } else {
+            yyerror("Assign to const");
+        }
+    }
 	;
 
 conditional_expression
@@ -364,9 +375,9 @@ unary_expression
     | DEC unary_expression { $$ = $2; }
     ;
 
-/* differecne - to not generate code here */
+/* differecne - to not generate code [load] here */
 unary_expression_for_assignment
-    : postfix_expression { lookup_symbol($1); }
+    : postfix_expression { lookup_symbol($1); $$ = $1; }
     | INC unary_expression { $$ = $2; } //================================================ delete '@' in const
     | DEC unary_expression { $$ = $2; }
     ;
@@ -395,12 +406,12 @@ argument_expression_list
     ;
 
 assignment_operator
-    : ASGN
-    | MULASGN
-    | DIVASGN
-    | MODASGN
-    | ADDASGN
-    | SUBASGN
+    : ASGN { $$ = "ASGN"; }
+    | MULASGN { $$ = "MULASGN"; }
+    | DIVASGN { $$ = "DIVASGN"; }
+    | MODASGN { $$ = "MODASGN"; }
+    | ADDASGN { $$ = "ADDASGN"; }
+    | SUBASGN { $$ = "SUBASGN"; }
 
 type_specifier // declaration_specifiers
     : INT { $$ = $1; sprintf(typeBuff, "int"); }
@@ -720,26 +731,6 @@ char getTypeCode(char* type) {
     else if (strcmp(type, "void") == 0) { return 'V'; }
 }
 
-char* gencode_asgnExpr_typeCast(char* leftType, char* rightType) {
-    if(strcmp(leftType, "int") == 0 && strcmp(rightType, "int") == 0){              // int = int
-        return "int";
-	} else if(strcmp(leftType, "int") == 0 && strcmp(rightType, "float") == 0){     // int = float
-        fprintf(file, "\tf2i\n");
-        return "int";
-	} else if(strcmp(leftType, "float") == 0 && strcmp(rightType, "int") == 0){     // float = int
-		fprintf(file, "\ti2f\n");
-        return "float";
-	} else if(strcmp(leftType, "float") == 0 && strcmp(rightType, "float") == 0){   // float = float
-        return "float";
-	} else if(strcmp(leftType, "string") == 0 && strcmp(rightType, "string") == 0){ // string = string
-        return "string";
-	} else if(strcmp(leftType, "bool") == 0 && strcmp(rightType, "bool") == 0){     // bool = bool
-        return "bool";
-	} else{
-		yyerror("Unsupported type assignment");
-	}
-}
-
 void gencode_declaration(char* varName, char* type, int isInit) {
     if (currScopeLevel == 0) {
         if (isInit == 1) {
@@ -953,4 +944,79 @@ void gencode_cmpExpr(char* leftType, char* rightType, char* instruction){
     fprintf(file, "L_%s_FALSE_%d:\n", instruction, cmp_label_index);
 
 	cmp_label_index++;
+}
+
+char* getVarTypeFromSymbolTable(char varName[VAR_SIZE]) {
+    int tmpIndex = currIndex;
+    if (lookup_symbol(varName) == 1) {
+        for (int i = currIndex ; symbolTable[i].scopeLevel == currScopeLevel ; --i) {
+            tmpIndex = i;
+            if (strcmp(symbolTable[i].name, varName) == 0) {
+                    return symbolTable[i].dataType;
+            }
+        }
+        for (int i = tmpIndex ; i >= 0 ; --i) {
+            if (symbolTable[i].scopeLevel < currScopeLevel 
+                && strcmp(symbolTable[i].name, varName) == 0) {
+                    return symbolTable[i].dataType;
+            }
+        }
+        yyerror("Var not found in getVarTypeFromSymbolTable)");
+    }
+}
+
+char* gencode_asgnExpr_typeCast(char* leftType, char* rightType) {
+    if(strcmp(leftType, "int") == 0 && strcmp(rightType, "int") == 0){              // int = int
+        return "int";
+	} else if(strcmp(leftType, "int") == 0 && strcmp(rightType, "float") == 0){     // int = float
+        fprintf(file, "\tf2i\n");
+        return "int";
+	} else if(strcmp(leftType, "float") == 0 && strcmp(rightType, "int") == 0){     // float = int
+		fprintf(file, "\ti2f\n");
+        return "float";
+	} else if(strcmp(leftType, "float") == 0 && strcmp(rightType, "float") == 0){   // float = float
+        return "float";
+	} else if(strcmp(leftType, "string") == 0 && strcmp(rightType, "string") == 0){ // string = string
+        return "string";
+	} else if(strcmp(leftType, "bool") == 0 && strcmp(rightType, "bool") == 0){     // bool = bool
+        return "bool";
+	} else{
+		yyerror("Unsupported type assignment");
+	}
+}
+
+char* gencode_asgnExpr(char* leftVarName[VAR_SIZE], char* leftType, char* rightType, char* instruction) {
+    
+    if (strcmp(instruction, "ASGN") == 0) {
+        gencode_asgnExpr_typeCast(leftType, rightType);
+        gencode_store(leftVarName, leftType);
+
+    } else if (strcmp(instruction, "MULASGN") == 0) {
+        gencode_load(leftVarName);
+        fprintf(file, "\tswap\n");
+        gencode_arihmeticExpr(leftType, rightType, "mul");
+        gencode_store(leftVarName, leftType);
+    } else if (strcmp(instruction, "DIVASGN") == 0) {
+        gencode_load(leftVarName);
+        fprintf(file, "\tswap\n");
+        gencode_arihmeticExpr(leftType, rightType, "div");
+        gencode_store(leftVarName, leftType);
+    } else if (strcmp(instruction, "MODASGN") == 0) {
+        gencode_load(leftVarName);
+        fprintf(file, "\tswap\n");
+        gencode_modExpr(leftType, rightType);
+        gencode_store(leftVarName, leftType);
+    } else if (strcmp(instruction, "ADDASGN") == 0) {
+        gencode_load(leftVarName);
+        fprintf(file, "\tswap\n");
+        gencode_arihmeticExpr(leftType, rightType, "add");
+        gencode_store(leftVarName, leftType);
+    } else if (strcmp(instruction, "SUBASGN") == 0) {
+        gencode_load(leftVarName);
+        fprintf(file, "\tswap\n");
+        gencode_arihmeticExpr(leftType, rightType, "sub");
+        gencode_store(leftVarName, leftType);
+    }
+
+    return leftType;
 }
