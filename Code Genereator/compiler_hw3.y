@@ -79,6 +79,7 @@ int gencode_loadAndFunctCall(char varName[VAR_SIZE]);
 
 void gencode_print(char *type);
 
+char* gencode_postfixExpr(char varName[VAR_SIZE], char* instruction);
 char* gencode_arihmeticExpr(char* leftType, char* rightType, char* instruction);
 char* gencode_modExpr(char* leftType, char* rightType);
 
@@ -416,8 +417,8 @@ postfix_expression
             $$ = gencode_invokeFunct($1); 
         }
     }
-    | postfix_expression INC { $$ = $1; }
-    | postfix_expression DEC { $$ = $1; }
+    | postfix_expression INC { $$ = gencode_postfixExpr($1, "INC"); }
+    | postfix_expression DEC { $$ = gencode_postfixExpr($1, "DEC"); }
     ;
 
 primary_expression
@@ -885,6 +886,39 @@ void gencode_print(char *type) {
     } else {
         yyerror("Unsupported type to print");
     }
+}
+
+char* gencode_postfixExpr(char varName[VAR_SIZE], char* instruction) {
+    int varIndex = getVarIndexOfSymbolTable(varName);
+    char *varType = symbolTable[varIndex].dataType;
+
+    gencode_load(varName);
+    if (strcmp(instruction, "INC") == 0) {
+        if (strcmp(varType, "int") == 0) {
+            genCode("\tldc 1\n");
+			genCode("\tiadd\n");
+			gencode_store(varName, varType);
+        } else if (strcmp(varType, "float") == 0) {
+            genCode("\tldc 1.0\n");
+			genCode("\tfadd\n");
+			gencode_store(varName, varType);
+        } else {
+            yyerror("Unsupported type for postfix expr");
+        }
+    } else if (strcmp(instruction, "DEC") == 0) {
+        if (strcmp(varType, "int") == 0) {
+            genCode("\tldc 1\n");
+			genCode("\tisub\n");
+			gencode_store(varName, varType);
+        } else if (strcmp(varType, "float") == 0) {
+            genCode("\tldc 1.0\n");
+			genCode("\tfsub\n");
+			gencode_store(varName, varType);
+        } else {
+            yyerror("Unsupported type for postfix expr");
+        }
+    }
+    return varType;
 }
 
 /*for expression*/
