@@ -46,6 +46,7 @@ char returnTypeBuff[10];
 int currLocalIndex = -1;
 int cmp_label_index = -1;
 int isGlobalDeclare = 0;
+int head_IF_index_buff = 0;
 
 
 /**/
@@ -205,24 +206,40 @@ expression
     ;
 
 selection_statement
-    : IF LB expression RB statement {
+    : IF {
         cmp_label_index++;
-        fprintf(file, "\tgoto EXIT%d\n", cmp_label_index);
-        fprintf(file, "LABEL_FALSE_%d\:\n", cmp_label_index);
-    } ELSE statement {
-        fprintf(file, "EXIT%d\:\n", cmp_label_index);
+        head_IF_index_buff = cmp_label_index;
     }
-    | IF LB expression RB statement{
+    LB expression RB compound_statement {
+        fprintf(file, "\tgoto EXIT%d\n", head_IF_index_buff);
+        fprintf(file, "LABEL_FALSE_%d\:\n", cmp_label_index);
+    } else_if_statement else_statement
+    ;
+
+else_if_statement
+    : else_if_statement ELSE IF {
+        cmp_label_index++;
+    } LB expression RB compound_statement {
+        fprintf(file, "\tgoto EXIT%d\n", head_IF_index_buff);
         fprintf(file, "LABEL_FALSE_%d\:\n", cmp_label_index);
     }
+    |
+    ;
+
+else_statement
+    : ELSE compound_statement {
+        fprintf(file, "\tgoto EXIT%d\n", head_IF_index_buff);
+        fprintf(file, "EXIT%d\:\n", head_IF_index_buff);
+    }
+    |{ fprintf(file, "LABEL_FALSE_%d\:\n", cmp_label_index); }
     ;
 
 iteration_statement
     : WHILE { 
         cmp_label_index++;
-        fprintf(file, "LABEL_WHILE_BEGIN_%d\:\n", cmp_label_index); 
+        fprintf(file, "LABEL_BEGIN_%d\:\n", cmp_label_index); 
     }
-    LB expression RB statement { 
+    LB expression RB compound_statement { 
         fprintf(file, "\tgoto LABEL_BEGIN_%d\n", cmp_label_index);
         fprintf(file, "LABEL_FALSE_%d\:\n", cmp_label_index);
         fprintf(file, "\tgoto EXIT%d\n", cmp_label_index);
@@ -251,12 +268,15 @@ jump_statement
 
 print_func
     : PRINT LB I_CONST RB SEMICOLON {
+        fprintf(file, "\tldc %d\n", yylval.i_val);
         gencode_print("int");
     }
     | PRINT LB F_CONST RB SEMICOLON {
+        fprintf(file, "\tldc %f\n", yylval.f_val);
         gencode_print("float");
     }
     | PRINT LB STR_CONST RB SEMICOLON {
+        fprintf(file, "\tldc %s\n", $3);
         gencode_print("string");
     }
     | PRINT LB ID RB SEMICOLON { 
@@ -457,11 +477,12 @@ primary_expression
     | F_CONST { 
         $$ = "@float"; 
         if(isGlobalDeclare == 0) { 
-        fprintf(file, "\tldc %f\n", yylval.f_val);
+            fprintf(file, "\tldc %f\n", yylval.f_val);
         }
     }
     | STR_CONST { 
         $$ = "@string"; 
+        printf("strrrrrr %d %s\n", isGlobalDeclare, $1);
         if(isGlobalDeclare == 0) { 
             fprintf(file, "\tldc %s\n", $1); 
         }
