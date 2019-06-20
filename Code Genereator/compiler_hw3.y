@@ -45,6 +45,7 @@ char typeBuff[10];
 char returnTypeBuff[10];
 int currLocalIndex = -1;
 int cmp_label_index = -1;
+int isGlobalDeclare = 0;
 
 
 /**/
@@ -295,14 +296,20 @@ init_declarator
         }
         
     }
-    | declarator ASGN initializer { 
+    | declarator ASGN {
+        if (currScopeLevel == 0) {
+            isGlobalDeclare = 1;
+        }
+    }
+    initializer { 
         if (currScopeLevel != 0) {
             currLocalIndex++;
         }
         $$ = $1; 
         if ($1[0] != '@' && $1[0] != '#') {
-            gencode_asgnExpr_typeCast(typeBuff, $3);
+            gencode_asgnExpr_typeCast(typeBuff, $4);
             gencode_declaration($1, typeBuff, 1);
+            isGlobalDeclare = 0;
         }
     }
     ;
@@ -441,11 +448,35 @@ postfix_expression
 
 primary_expression
     : ID { $$ = $1; }
-    | I_CONST {  $$ = "@int"; fprintf(file, "\tldc %d\n", yylval.i_val); } /*if @, means that it is const*/
-    | F_CONST { $$ = "@float"; fprintf(file, "\tldc %f\n", yylval.f_val); }
-    | STR_CONST { $$ = "@string"; fprintf(file, "\tldc %s\n", $1); }
-    | TRUE { $$ = "@bool"; }
-    | FALSE { $$ = "@bool"; }
+    | I_CONST {  
+        $$ = "@int"; /*if @, means that it is const*/
+        if(isGlobalDeclare == 0) { 
+            fprintf(file, "\tldc %d\n", yylval.i_val);
+        } 
+    }
+    | F_CONST { 
+        $$ = "@float"; 
+        if(isGlobalDeclare == 0) { 
+        fprintf(file, "\tldc %f\n", yylval.f_val);
+        }
+    }
+    | STR_CONST { 
+        $$ = "@string"; 
+        if(isGlobalDeclare == 0) { 
+            fprintf(file, "\tldc %s\n", $1); 
+        }
+    }
+    | TRUE { 
+        $$ = "@bool"; 
+        if(isGlobalDeclare == 0) { 
+            fprintf(file, "\tldc 1\n"); 
+        }
+    }
+    | FALSE { $$ = "@bool"; 
+        if(isGlobalDeclare == 0) { 
+            fprintf(file, "\tldc 1\n"); 
+        }
+    }
     ;
 
 argument_expression_list
