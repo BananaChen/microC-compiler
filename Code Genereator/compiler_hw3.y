@@ -87,6 +87,7 @@ char* gencode_asgnExpr_typeCast(char* leftType, char* rightType);
 char* gencode_asgnExpr(char* leftVarName[VAR_SIZE], char* leftType, char* rightType, char* instruction);
 
 void gencode_functDeclaration(char* returnType, char* nameAndParam);
+char* gencode_invokeFunct(char* functName[VAR_SIZE]);
 %}
 
 /* Use variable or self-defined structure to represent
@@ -373,6 +374,9 @@ unary_expression
     : postfix_expression {
         if ($1[0] == '@') {
             $$ = $1 + 1;
+        } else if(strcmp($1, "void") == 0 || strcmp($1, "int") == 0 || strcmp($1, "float") == 0 
+            || strcmp($1, "bool") == 0 || strcmp($1, "string") == 0) {
+                $$ = $1;
         } else {
             int isDeclared = lookup_symbol($1);
             if (isDeclared) {
@@ -402,14 +406,14 @@ postfix_expression
         char tmp[VAR_SIZE] = "#"; 
         $$ =strcat(tmp, $1); 
         if ($1[0] != '@') {
-            gencode_invokeFunct($1); 
+            $$ = gencode_invokeFunct($1); 
         }
     }
     | postfix_expression LB argument_expression_list RB { 
         char tmp[VAR_SIZE] = "#"; 
         $$ = strcat(tmp, $1); 
         if ($1[0] != '@') {
-            gencode_invokeFunct($1); 
+            $$ = gencode_invokeFunct($1); 
         }
     }
     | postfix_expression INC { $$ = $1; }
@@ -1120,24 +1124,30 @@ void gencode_returnWithValue(char* returnType, char* rightType) {
 	}
 }
 
-void gencode_invokeFunct(char* functName[VAR_SIZE]) {
-    int functIndex = getVarIndexOfSymbolTable(functName);
+char* gencode_invokeFunct(char* functName[VAR_SIZE]) {
+    char tmp[VAR_SIZE] = "#";
+    sprintf(tmp, functName);
+    // if (lookup_symbol(tmp) == 1) {
+        
+        int functIndex = getVarIndexOfSymbolTable(functName);
 
-    genCode("\tinvokestatic compiler_hw3/");
-	genCode(functName);
-	genCode("(");
+        genCode("\tinvokestatic compiler_hw3/");
+        genCode(functName);
+        genCode("(");
 
-    char* params = symbolTable[functIndex].formalParameters;
-    if (params != NULL) {
-        char* pch = strtok(params, ", ");
-        while (pch != NULL) {
-            if (strcmp(pch, "void") != 0) {
-                genCode(getTypeCode(pch));
-                pch = strtok(NULL, ", ");
+        char* params = symbolTable[functIndex].formalParameters;
+        if (params != NULL) {
+            char* pch = strtok(params, ", ");
+            while (pch != NULL) {
+                if (strcmp(pch, "void") != 0) {
+                    genCode(getTypeCode(pch));
+                    pch = strtok(NULL, ", ");
+                }
             }
         }
-    }
-	genCode(")");
-	genCode(getTypeCode(symbolTable[functIndex].dataType));
-	genCode("\n");
+        genCode(")");
+        genCode(getTypeCode(symbolTable[functIndex].dataType));
+        genCode("\n");
+        return symbolTable[functIndex].dataType;
+    // }
 }
