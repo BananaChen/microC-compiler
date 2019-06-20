@@ -70,6 +70,7 @@ void dump_symbol();
 
 /* code generation functions, just an example! */
 int isStatic(int varIndex);
+char getTypeCode(char* type);
 void gencode_store();
 int gencode_load(char varName[VAR_SIZE]);
 int gencode_loadAndFunctCall(char varName[VAR_SIZE]);
@@ -78,6 +79,8 @@ void gencode_print(char *type);
 
 char* gencode_arihmeticExpr(char* leftType, char* rightType, char* instruction);
 char* gencode_modExpr(char* leftType, char* rightType);
+
+char* gencode_asgnExpr_typeCast(char* leftType, char* rightType);
 %}
 
 /* Use variable or self-defined structure to represent
@@ -122,8 +125,12 @@ char* gencode_modExpr(char* leftType, char* rightType);
 %type <string> init_declarator
 %type <string> init_declarator_list
 
-%type <string> postfix_expression unary_expression multiplicative_expression additive_expression
-%type <string> equality_expression relational_expression
+%type <string> postfix_expression unary_expression unary_expression_for_assignment 
+%type <string> multiplicative_expression additive_expression
+%type <string> relational_expression equality_expression 
+%type <string> logical_and_expression logical_or_expression conditional_expression assignment_expression
+%type <string> initializer
+
 /* Yacc will start at this nonterminal */
 %start program
 
@@ -239,10 +246,16 @@ init_declarator
     : declarator { 
         if (currScopeLevel != 0) {
             currLocalIndex++;
+            if ($1[0] != '@' && $1[0] != '#') {
+                if (strcmp(typeBuff, "int") == 0) { fprintf(file, "\tldc 0\n"); } 
+                else if (strcmp(typeBuff, "float") == 0) { fprintf(file, "\tldc 0.0\n"); } 
+                else if (strcmp(typeBuff, "string") == 0) { fprintf(file, "\tldc \"\"\n"); } 
+                else if (strcmp(typeBuff, "bool") == 0) { fprintf(file, "\tldc 0\n"); } 
+            }
         }
-        $$ = $1; 
+        $$ = $1;
         if ($1[0] != '@' && $1[0] != '#') {
-
+            gencode_declaration($1, typeBuff, 0);
         }
         
     }
@@ -251,6 +264,10 @@ init_declarator
             currLocalIndex++;
         }
         $$ = $1; 
+        if ($1[0] != '@' && $1[0] != '#') {
+            gencode_asgnExpr_typeCast(typeBuff, $3);
+            gencode_declaration($1, typeBuff, 1);
+        }
     }
     ;
 
@@ -279,26 +296,26 @@ identifier_list
     ;
 
 initializer
-    : assignment_expression
+    : assignment_expression { $$ = $1; }
     ;
 
 assignment_expression
-	: conditional_expression
-	| unary_expression_for_assignment assignment_operator assignment_expression
+	: conditional_expression { $$ = $1; }
+	| unary_expression_for_assignment assignment_operator assignment_expression //-------------------------- add $$
 	;
 
 conditional_expression
-    : logical_or_expression
+    : logical_or_expression { $$ = $1; }
     ;
 
 logical_or_expression
-    : logical_and_expression
-    | logical_or_expression OR logical_and_expression
+    : logical_and_expression { $$ = $1; }
+    | logical_or_expression OR logical_and_expression { $$ = "bool"; }
     ;
 
 logical_and_expression
-    : equality_expression
-    | logical_and_expression AND equality_expression
+    : equality_expression { $$ = $1; }
+    | logical_and_expression AND equality_expression { $$ = "bool"; }
     ;
 
 equality_expression
@@ -308,7 +325,7 @@ equality_expression
     ;
 
 relational_expression
-    : additive_expression { $$ =$1; }
+    : additive_expression { $$ = $1; }
     | relational_expression MT additive_expression { gencode_cmpExpr($1, $3, "MT"); $$ = "bool"; }
     | relational_expression LT additive_expression { gencode_cmpExpr($1, $3, "LT"); $$ = "bool"; }
     | relational_expression MTE additive_expression { gencode_cmpExpr($1, $3, "MTE"); $$ = "bool"; }
@@ -347,10 +364,11 @@ unary_expression
     | DEC unary_expression { $$ = $2; }
     ;
 
+/* differecne - to not generate code here */
 unary_expression_for_assignment
     : postfix_expression { lookup_symbol($1); }
-    | INC unary_expression //================================================ delete '@' in const
-    | DEC unary_expression
+    | INC unary_expression { $$ = $2; } //================================================ delete '@' in const
+    | DEC unary_expression { $$ = $2; }
     ;
 
 
@@ -677,11 +695,10 @@ void dump_symbol() {
     }
 }
 
-
 /* 
- * =================================================================
- * |                    Code Generate Section                      |
- * =================================================================
+ * =======================================================================================
+ * |                                 Code Generate Section                               |
+ * =======================================================================================
  */
 
 int isStatic(int varIndex) {
@@ -693,59 +710,78 @@ int isStatic(int varIndex) {
     }
 }
 
-// void gencode_declaration(char* varName, char* type, int isInit) {
-//     if (currScopeLevel == 0) {
-//         if (isInit == 1) {
-//             if (strcmp(type, "int") == 0) {
-//                 fprintf(file, ".field public static %s %s = %d", varName, getTypeCode(type), yylval.i_val);
-//             } else if (strcmp(type, "float") == 0) {
-//                 fprintf(file, ".field public static %s %s = %d", varName, getTypeCode(type), yylval.f_val);
-//             } else if (strcmp(type, "string") == 0) {
-//                 fprintf(file, ".field public static %s %s = %d", varName, getTypeCode(type), yylval.string);
-//             } else if (strcmp(type, "bool") == 0) {
-//                 fprintf(file, ".field public static %s %s = %d", varName, getTypeCode(type), yylval.i_val);
-//             } else {
-//                 yyerror(strcat("Invalid type for golbal declaration"));
-//             }
-
-//         } else if (isInit == 0) {
-//             fprintf(file, ".field public static %s %s", varName, getTypeCode(type));
-//         }
-//     } else {
-//         gencode_store(type);
-//     }
-// }
-
-// void gencode_store(char* type) {
-//     if (currScopeLevel == 0) {
-
-//     } else {
-
-//         if (strcmp(type, "int") == 0) {
-//             fprintf(file, "\tistore %d\n", );
-//         } else if (strcmp(type, "float") == 0) {
-//             fprintf(file, "\tfstore %d\n", );
-//         } else if (strcmp(type, "string") == 0) {
-//             fprintf(file, "\tastore %d\n", );
-//         } else if (strcmp(type, "bool") == 0) {
-//             fprintf(file, "\tistore %d\n", );
-//         } else {
-//             yyerror(strcat("Invalid type for declare"));
-//         }
-
-//     }
-
-// }
-
 /* Translate type to Jasmin representation code*/
-char* getTypeCode(char* type) {
+char getTypeCode(char* type) {
 
-    if (strcmp(type, "int") == 0) { return "I"; } 
-    else if (strcmp(type, "float") == 0) { return "F"; } 
-    else if (strcmp(type, "string") == 0) { return "Ljava/lang/String;"; } 
-    else if (strcmp(type, "bool") == 0) { return "Z"; } 
-    else if (strcmp(type, "void") == 0) { return "V"; }
+    if (strcmp(type, "int") == 0) { return 'I'; } 
+    else if (strcmp(type, "float") == 0) { return 'F'; } 
+    else if (strcmp(type, "string") == 0) { return 'Ljava/lang/String;'; } 
+    else if (strcmp(type, "bool") == 0) { return 'Z'; } 
+    else if (strcmp(type, "void") == 0) { return 'V'; }
 }
+
+char* gencode_asgnExpr_typeCast(char* leftType, char* rightType) {
+    if(strcmp(leftType, "int") == 0 && strcmp(rightType, "int") == 0){              // int = int
+        return "int";
+	} else if(strcmp(leftType, "int") == 0 && strcmp(rightType, "float") == 0){     // int = float
+        fprintf(file, "\tf2i\n");
+        return "int";
+	} else if(strcmp(leftType, "float") == 0 && strcmp(rightType, "int") == 0){     // float = int
+		fprintf(file, "\ti2f\n");
+        return "float";
+	} else if(strcmp(leftType, "float") == 0 && strcmp(rightType, "float") == 0){   // float = float
+        return "float";
+	} else if(strcmp(leftType, "string") == 0 && strcmp(rightType, "string") == 0){ // string = string
+        return "string";
+	} else if(strcmp(leftType, "bool") == 0 && strcmp(rightType, "bool") == 0){     // bool = bool
+        return "bool";
+	} else{
+		yyerror("Unsupported type assignment");
+	}
+}
+
+void gencode_declaration(char* varName, char* type, int isInit) {
+    if (currScopeLevel == 0) {
+        if (isInit == 1) {
+            if (strcmp(type, "int") == 0) {
+                fprintf(file, ".field public static %s %c = %d\n", varName, getTypeCode(type), yylval.i_val);
+            } else if (strcmp(type, "float") == 0) {
+                fprintf(file, ".field public static %s %c = %d\n", varName, getTypeCode(type), yylval.f_val);
+            } else if (strcmp(type, "string") == 0) {
+                fprintf(file, ".field public static %s %c = %d\n", varName, getTypeCode(type), yylval.string);
+            } else if (strcmp(type, "bool") == 0) {
+                fprintf(file, ".field public static %s %c = %d\n", varName, getTypeCode(type), yylval.i_val);
+            } else {
+                yyerror("Invalid type for global declaration");
+            }
+
+        } else if (isInit == 0) {
+            fprintf(file, ".field public static %s %c\n", varName, getTypeCode(type));
+        }
+    } else {
+        gencode_store(varName, type);
+    }
+}
+
+void gencode_store(char* varName, char* type) {
+
+    if (currScopeLevel == 0) {
+        fprintf(file, "\tputstatic compiler_hw3/%s %s\n", varName, type);
+    } else {
+        if (strcmp(type, "int") == 0) {
+            fprintf(file, "\tistore %d\n", currLocalIndex);
+        } else if (strcmp(type, "float") == 0) {
+            fprintf(file, "\tfstore %d\n", currLocalIndex);
+        } else if (strcmp(type, "string") == 0) {
+            fprintf(file, "\tastore %d\n", currLocalIndex);
+        } else if (strcmp(type, "bool") == 0) {
+            fprintf(file, "\tistore %d\n", currLocalIndex);
+        } else {
+            yyerror("Invalid type for storage");
+        }
+    }
+}
+
 
 /* Return index of loaded variable*/
 int gencode_load(char varName[VAR_SIZE]) {
@@ -767,7 +803,7 @@ int gencode_load(char varName[VAR_SIZE]) {
     }
 
     if (loadedVarIndex == -1) {
-        yyerror(strcat("ERROR: var %s not defined", varName));
+        yyerror("ERROR: var not defined");
         return;
     }
 
@@ -781,7 +817,7 @@ int gencode_load(char varName[VAR_SIZE]) {
         } else if (strcmp(symbolTable[loadedVarIndex].dataType, "bool") == 0) {
             fprintf(file, "\tgetstatic compiler_hw3/%s Z\n", symbolTable[loadedVarIndex].name);
         } else {
-            yyerror(strcat("Generate Code Load Failed, type = ", "symbolTable[loadedVarIndex].type"));
+            yyerror("Generate Code Load Failed, unsupported type");
         }
     } else {
         if (strcmp(symbolTable[loadedVarIndex].dataType, "int") == 0) {
@@ -793,7 +829,7 @@ int gencode_load(char varName[VAR_SIZE]) {
         } else if (strcmp(symbolTable[loadedVarIndex].dataType, "bool") == 0) {
             fprintf(file, "\tiload %d\n", symbolTable[loadedVarIndex].localIndex);
         } else {
-            yyerror(strcat("Generate Code Load Failed, type = ", "symbolTable[loadedVarIndex].type"));
+            yyerror("Generate Code Load Failed, unsupported type");
         }
     }
     return loadedVarIndex;
@@ -827,7 +863,7 @@ void gencode_print(char *type) {
     } else if (strcmp(type, "bool") == 0) {
         fprintf(file, "\tinvokevirtual java/io/PrintStream/println(I)V\n");
     } else {
-        yyerror(strcat("Can't print, type = ", "symbolTable[loadedVarIndex].type"));
+        yyerror("Unsupported type to print");
     }
 }
 
@@ -854,7 +890,7 @@ char* gencode_arihmeticExpr(char* leftType, char* rightType, char* instruction) 
         return "float";
 	}
 	else{
-		yyerror(strcat("Unsupported type for doing %s", instruction));
+		yyerror("Unsupported type for doing instruction in gencode_arihmeticExpr()");
 	}
 }
 
@@ -887,7 +923,7 @@ void gencode_cmpExpr(char* leftType, char* rightType, char* instruction){
 
 	}
 	else{
-		yyerror(strcat("Unsupported type for doing %s", instruction));
+		yyerror("Unsupported type for doing instruction in gencode_cmpExpr()");
 	}
 
 
