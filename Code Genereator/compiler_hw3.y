@@ -42,6 +42,7 @@ SymbolEntry symbolTable[SYMBOL_TABLE_SIZE];
 
 /*Code Genetarion variable*/
 char typeBuff[10];
+char returnTypeBuff[10];
 int currLocalIndex = -1;
 int cmp_label_index = -1;
 
@@ -157,7 +158,7 @@ external_declaration
 function_definition
     : type_specifier declarator {
         gencode_functDeclaration($1, $2);
-    } compound_statement { insert_funct_declaration($1, $2); } //==================================================
+    } compound_statement { insert_funct_declaration($1, $2); genCode(".end method\n"); } //==================================================
     | type_specifier declarator declaration_list compound_statement //for what?
     ;
 
@@ -216,8 +217,15 @@ iteration_statement
 jump_statement
     : CONT SEMICOLON
     | BREAK SEMICOLON
-    | RET SEMICOLON
-    | RET expression SEMICOLON
+    | RET SEMICOLON {
+        if(strcmp(returnTypeBuff, "void") == 0){
+			genCode("\treturn\n");
+		}
+		else{
+			yyerror("Return type should be void");
+		}
+    }
+    | RET assignment_expression SEMICOLON { gencode_returnWithValue(returnTypeBuff, $2); }
     ;
 
 print_func
@@ -444,9 +452,6 @@ int main(int argc, char** argv)
         printFinalSymbolTable(0);
     	printf("\n\nTotal lines: %d \n",yylineno);
     }
-
-    fprintf(file, "\treturn\n"
-                  ".end method\n");
 
     fclose(file);
 
@@ -1037,6 +1042,8 @@ void gencode_functDeclaration(char* returnType, char* nameAndParam) {
         return;
     }
 
+    sprintf(returnTypeBuff, returnType);
+
     char *pch = strtok(nameAndParam, "##");
     char *params = strtok(NULL, "##");
     char *functName = pch;
@@ -1059,7 +1066,6 @@ void gencode_functDeclaration(char* returnType, char* nameAndParam) {
         }
     }
 
-
     genCode(")");
     genCode(getTypeCode(returnType));
     genCode("\n");
@@ -1075,12 +1081,27 @@ void gencode_functDeclaration(char* returnType, char* nameAndParam) {
     //         }
     //     }
     // }
+}
 
-    // if (checkRedeclare("function", functName) == 0) {
-    //     insert_symbol(functName, "function", dataType, currScopeLevel, pch, 0);
-    // }
-    // else {
-    //     return;
-    // }
+void gencode_returnWithValue(char* returnType, char* rightType) {
+    if(strcmp(returnType, "int") == 0 && strcmp(rightType, "int") == 0){              // int = int
+        genCode("\tireturn\n");
 
+	} else if(strcmp(returnType, "int") == 0 && strcmp(rightType, "float") == 0){     // int = float
+        fprintf(file, "\tf2i\n");
+        genCode("\tireturn\n");
+
+	} else if(strcmp(returnType, "float") == 0 && strcmp(rightType, "int") == 0){     // float = int
+		fprintf(file, "\ti2f\n");
+        genCode("\tfreturn\n");
+
+	} else if(strcmp(returnType, "float") == 0 && strcmp(rightType, "float") == 0){   // float = float
+        genCode("\tfreturn\n");
+
+	} else if(strcmp(returnType, "bool") == 0 && strcmp(rightType, "bool") == 0){     // bool = bool
+        genCode("\tireturn\n");
+
+	} else{
+		yyerror("Return type error");
+	}
 }
