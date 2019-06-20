@@ -47,6 +47,7 @@ int currLocalIndex = -1;
 int cmp_label_index = -1;
 int isGlobalDeclare = 0;
 int head_IF_index_buff = 0;
+int isConstZero = 0;
 
 
 /**/
@@ -473,11 +474,21 @@ primary_expression
         if(isGlobalDeclare == 0) { 
             fprintf(file, "\tldc %d\n", yylval.i_val);
         } 
+        if (yylval.i_val == 0) {
+            isConstZero = 1;
+        } else {
+            isConstZero = 0;
+        }
     }
     | F_CONST { 
         $$ = "@float"; 
         if(isGlobalDeclare == 0) { 
             fprintf(file, "\tldc %f\n", yylval.f_val);
+        } 
+        if (yylval.f_val == 0.0) {
+            isConstZero = 1;
+        } else {
+            isConstZero = 0;
         }
     }
     | STR_CONST { 
@@ -993,6 +1004,13 @@ char* gencode_postfixExpr(char varName[VAR_SIZE], char* instruction) {
 
 /*for expression*/
 char* gencode_arihmeticExpr(char* leftType, char* rightType, char* instruction) {
+    if (strcmp(instruction, "div") == 0) {
+        if (isConstZero == 1) {
+            yyerror("Divide by zero");
+        }
+    }
+    isConstZero = 0;
+
     if(strcmp(leftType, "int") == 0 && strcmp(rightType, "int") == 0){
         fprintf(file, "\ti%s\n", instruction);
         return "int";
