@@ -382,12 +382,12 @@ conditional_expression
 
 logical_or_expression
     : logical_and_expression { $$ = $1; }
-    | logical_or_expression OR logical_and_expression { $$ = "bool"; }
+    | logical_or_expression OR logical_and_expression { $$ = "bool"; genCode("\tior\n");}
     ;
 
 logical_and_expression
     : equality_expression { $$ = $1; }
-    | logical_and_expression AND equality_expression { $$ = "bool"; }
+    | logical_and_expression AND equality_expression { $$ = "bool"; genCode("\tiand\n");}
     ;
 
 equality_expression
@@ -552,6 +552,11 @@ int main(int argc, char** argv)
     }
 
     fclose(file);
+
+    if (isYYError) {
+        gets("compiler_hw3.j");
+        remove("compiler_hw3.j");
+    }
 
     return 0;
 }
