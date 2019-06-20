@@ -69,8 +69,9 @@ void dump_symbol();
 
 
 /* code generation functions, just an example! */
+void genCode(char* str);
 int isStatic(int varIndex);
-char getTypeCode(char* type);
+char* getTypeCode(char* type);
 void gencode_store();
 int gencode_load(char varName[VAR_SIZE]);
 int gencode_loadAndFunctCall(char varName[VAR_SIZE]);
@@ -83,6 +84,8 @@ char* gencode_modExpr(char* leftType, char* rightType);
 char* getVarTypeFromSymbolTable(char varName[VAR_SIZE]);
 char* gencode_asgnExpr_typeCast(char* leftType, char* rightType);
 char* gencode_asgnExpr(char* leftVarName[VAR_SIZE], char* leftType, char* rightType, char* instruction);
+
+void gencode_functDeclaration(char* returnType, char* nameAndParam);
 %}
 
 /* Use variable or self-defined structure to represent
@@ -152,7 +155,9 @@ external_declaration
     ;
 
 function_definition
-    : type_specifier declarator compound_statement { insert_funct_declaration($1, $2); } //==================================================
+    : type_specifier declarator {
+        gencode_functDeclaration($1, $2);
+    } compound_statement { insert_funct_declaration($1, $2); } //==================================================
     | type_specifier declarator declaration_list compound_statement //for what?
     ;
 
@@ -431,8 +436,7 @@ int main(int argc, char** argv)
     file = fopen("compiler_hw3.j","w");
 
     fprintf(file,   ".class public compiler_hw3\n"
-                    ".super java/lang/Object\n"
-                    ".method public static main([Ljava/lang/String;)V\n");
+                    ".super java/lang/Object\n");
 
 
     yyparse();
@@ -541,12 +545,12 @@ void insert_param_declaration(char dataType[VAR_SIZE], char paramName[VAR_SIZE])
 }
 
 void insert_funct_declaration(char* dataType, char* nameAndParam) {
-    if (nameAndParam[0] == '@' && nameAndParam[1] =='@') {
-        memmove(nameAndParam, nameAndParam+2, strlen(nameAndParam));//remove "@@" infront funct declare(in [declarator] grammar)
-    } else {
-        yyerror("not function");
-        return;
-    }
+    // if (nameAndParam[0] == '@' && nameAndParam[1] =='@') {
+    //     memmove(nameAndParam, nameAndParam+2, strlen(nameAndParam));//remove "@@" infront funct declare(in [declarator] grammar)
+    // } else {
+    //     yyerror("not function");
+    //     return;
+    // }
 
     char *pch = strtok(nameAndParam, "##");
     char *functName = pch;
@@ -711,6 +715,9 @@ void dump_symbol() {
  * |                                 Code Generate Section                               |
  * =======================================================================================
  */
+void genCode(char* str) {
+    fprintf(file, str);
+}
 
 int isStatic(int varIndex) {
     
@@ -722,32 +729,33 @@ int isStatic(int varIndex) {
 }
 
 /* Translate type to Jasmin representation code*/
-char getTypeCode(char* type) {
+char* getTypeCode(char type[10]) {
 
-    if (strcmp(type, "int") == 0) { return 'I'; } 
-    else if (strcmp(type, "float") == 0) { return 'F'; } 
-    else if (strcmp(type, "string") == 0) { return 'Ljava/lang/String;'; } 
-    else if (strcmp(type, "bool") == 0) { return 'Z'; } 
-    else if (strcmp(type, "void") == 0) { return 'V'; }
+    if (strcmp(type, "int") == 0) { return "I"; } 
+    else if (strcmp(type, "float") == 0) { return "F"; } 
+    else if (strcmp(type, "string") == 0) { return "Ljava/lang/String;"; } 
+    else if (strcmp(type, "bool") == 0) { return "Z"; } 
+    else if (strcmp(type, "void") == 0) { return "V"; }
+    else { yyerror("Unsupported type to get type code"); }
 }
 
 void gencode_declaration(char* varName, char* type, int isInit) {
     if (currScopeLevel == 0) {
         if (isInit == 1) {
             if (strcmp(type, "int") == 0) {
-                fprintf(file, ".field public static %s %c = %d\n", varName, getTypeCode(type), yylval.i_val);
+                fprintf(file, ".field public static %s %s = %d\n", varName, getTypeCode(type), yylval.i_val);
             } else if (strcmp(type, "float") == 0) {
-                fprintf(file, ".field public static %s %c = %d\n", varName, getTypeCode(type), yylval.f_val);
+                fprintf(file, ".field public static %s %s = %d\n", varName, getTypeCode(type), yylval.f_val);
             } else if (strcmp(type, "string") == 0) {
-                fprintf(file, ".field public static %s %c = %d\n", varName, getTypeCode(type), yylval.string);
+                fprintf(file, ".field public static %s %s = %d\n", varName, getTypeCode(type), yylval.string);
             } else if (strcmp(type, "bool") == 0) {
-                fprintf(file, ".field public static %s %c = %d\n", varName, getTypeCode(type), yylval.i_val);
+                fprintf(file, ".field public static %s %s = %d\n", varName, getTypeCode(type), yylval.i_val);
             } else {
                 yyerror("Invalid type for global declaration");
             }
 
         } else if (isInit == 0) {
-            fprintf(file, ".field public static %s %c\n", varName, getTypeCode(type));
+            fprintf(file, ".field public static %s %s\n", varName, getTypeCode(type));
         }
     } else {
         gencode_store(varName, type);
@@ -1019,4 +1027,60 @@ char* gencode_asgnExpr(char* leftVarName[VAR_SIZE], char* leftType, char* rightT
     }
 
     return leftType;
+}
+
+void gencode_functDeclaration(char* returnType, char* nameAndParam) {
+    if (nameAndParam[0] == '@' && nameAndParam[1] =='@') {
+        memmove(nameAndParam, nameAndParam+2, strlen(nameAndParam));//remove "@@" infront funct declare(in [declarator] grammar)
+    } else {
+        yyerror("not function when gen code");
+        return;
+    }
+
+    char *pch = strtok(nameAndParam, "##");
+    char *params = strtok(NULL, "##");
+    char *functName = pch;
+
+    // gen function name code
+    genCode(".method public static ");
+    genCode(functName);
+    genCode("(");
+
+    if (strcmp(functName, "main") == 0) {
+        genCode("[Ljava/lang/String;");
+    } else {
+        // if there is paramater, then cut param
+        if (params != NULL) {
+            pch = strtok(params, ", ");
+            while (pch != NULL) {
+                genCode(getTypeCode(pch));
+                pch = strtok(NULL, ", ");
+            }
+        }
+    }
+
+
+    genCode(")");
+    genCode(getTypeCode(returnType));
+    genCode("\n");
+    genCode(".limit stack 50\n");
+    genCode(".limit locals 50\n");
+    /*check if is predeclared, if predeclared, then dont insert*/
+    // for (int i = currIndex ; i >= 0 ; i--) {
+    //     if (symbolTable[i].scopeLevel == currScopeLevel) {
+    //         if (strcmp(symbolTable[i].name, functName) == 0 && symbolTable[i].isPreDeclared == 1 
+    //             && strcmp(symbolTable[i].entryType, "function") == 0) {
+    //                 symbolTable[i].isPreDeclared = 0;
+    //             return;
+    //         }
+    //     }
+    // }
+
+    // if (checkRedeclare("function", functName) == 0) {
+    //     insert_symbol(functName, "function", dataType, currScopeLevel, pch, 0);
+    // }
+    // else {
+    //     return;
+    // }
+
 }
