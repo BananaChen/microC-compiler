@@ -82,7 +82,7 @@ void gencode_print(char *type);
 char* gencode_arihmeticExpr(char* leftType, char* rightType, char* instruction);
 char* gencode_modExpr(char* leftType, char* rightType);
 
-char* getVarTypeFromSymbolTable(char varName[VAR_SIZE]);
+int getVarIndexOfSymbolTable(char varName[VAR_SIZE]);
 char* gencode_asgnExpr_typeCast(char* leftType, char* rightType);
 char* gencode_asgnExpr(char* leftVarName[VAR_SIZE], char* leftType, char* rightType, char* instruction);
 
@@ -319,8 +319,8 @@ assignment_expression
 	: conditional_expression { $$ = $1; }
 	| unary_expression_for_assignment assignment_operator assignment_expression {
         if ($1[0] != '@') {
-            char* leftType = getVarTypeFromSymbolTable($1);
-            $$ = gencode_asgnExpr($1, leftType, $3, $2);
+            int varIndex = getVarIndexOfSymbolTable($1);
+            $$ = gencode_asgnExpr($1, symbolTable[varIndex].dataType, $3, $2);
 
         } else {
             yyerror("Assign to const");
@@ -398,8 +398,20 @@ unary_expression_for_assignment
 
 postfix_expression
     : primary_expression { $$ = $1; }
-    | postfix_expression LB RB { char tmp[VAR_SIZE] = "#"; $$ =strcat(tmp, $1); }
-    | postfix_expression LB argument_expression_list RB { char tmp[VAR_SIZE] = "#"; $$ = strcat(tmp, $1); }
+    | postfix_expression LB RB { 
+        char tmp[VAR_SIZE] = "#"; 
+        $$ =strcat(tmp, $1); 
+        if ($1[0] != '@') {
+            gencode_invokeFunct($1); 
+        }
+    }
+    | postfix_expression LB argument_expression_list RB { 
+        char tmp[VAR_SIZE] = "#"; 
+        $$ = strcat(tmp, $1); 
+        if ($1[0] != '@') {
+            gencode_invokeFunct($1); 
+        }
+    }
     | postfix_expression INC { $$ = $1; }
     | postfix_expression DEC { $$ = $1; }
     ;
@@ -550,12 +562,12 @@ void insert_param_declaration(char dataType[VAR_SIZE], char paramName[VAR_SIZE])
 }
 
 void insert_funct_declaration(char* dataType, char* nameAndParam) {
-    // if (nameAndParam[0] == '@' && nameAndParam[1] =='@') {
-    //     memmove(nameAndParam, nameAndParam+2, strlen(nameAndParam));//remove "@@" infront funct declare(in [declarator] grammar)
-    // } else {
-    //     yyerror("not function");
-    //     return;
-    // }
+    if (nameAndParam[0] == '@' && nameAndParam[1] =='@') {
+        memmove(nameAndParam, nameAndParam+2, strlen(nameAndParam));//remove "@@" infront funct declare(in [declarator] grammar)
+    } else {
+        yyerror("not function");
+        return;
+    }
 
     char *pch = strtok(nameAndParam, "##");
     char *functName = pch;
@@ -959,22 +971,22 @@ void gencode_cmpExpr(char* leftType, char* rightType, char* instruction){
 	cmp_label_index++;
 }
 
-char* getVarTypeFromSymbolTable(char varName[VAR_SIZE]) {
+int getVarIndexOfSymbolTable(char varName[VAR_SIZE]) {
     int tmpIndex = currIndex;
     if (lookup_symbol(varName) == 1) {
         for (int i = currIndex ; symbolTable[i].scopeLevel == currScopeLevel ; --i) {
             tmpIndex = i;
             if (strcmp(symbolTable[i].name, varName) == 0) {
-                    return symbolTable[i].dataType;
+                    return i;
             }
         }
         for (int i = tmpIndex ; i >= 0 ; --i) {
             if (symbolTable[i].scopeLevel < currScopeLevel 
                 && strcmp(symbolTable[i].name, varName) == 0) {
-                    return symbolTable[i].dataType;
+                    return i;
             }
         }
-        yyerror("Var not found in getVarTypeFromSymbolTable)");
+        yyerror("Var not found in getVarIndexOfSymbolTable)");
     }
 }
 
@@ -1034,7 +1046,9 @@ char* gencode_asgnExpr(char* leftVarName[VAR_SIZE], char* leftType, char* rightT
     return leftType;
 }
 
-void gencode_functDeclaration(char* returnType, char* nameAndParam) {
+void gencode_functDeclaration(char* returnType, char* inputNameAndParam) {
+    char nameAndParam[VAR_SIZE];
+    sprintf(nameAndParam, inputNameAndParam);
     if (nameAndParam[0] == '@' && nameAndParam[1] =='@') {
         memmove(nameAndParam, nameAndParam+2, strlen(nameAndParam));//remove "@@" infront funct declare(in [declarator] grammar)
     } else {
@@ -1084,24 +1098,46 @@ void gencode_functDeclaration(char* returnType, char* nameAndParam) {
 }
 
 void gencode_returnWithValue(char* returnType, char* rightType) {
-    if(strcmp(returnType, "int") == 0 && strcmp(rightType, "int") == 0){              // int = int
+    if (strcmp(returnType, "int") == 0 && strcmp(rightType, "int") == 0){              // int = int
         genCode("\tireturn\n");
 
-	} else if(strcmp(returnType, "int") == 0 && strcmp(rightType, "float") == 0){     // int = float
+	} else if (strcmp(returnType, "int") == 0 && strcmp(rightType, "float") == 0){     // int = float
         fprintf(file, "\tf2i\n");
         genCode("\tireturn\n");
 
-	} else if(strcmp(returnType, "float") == 0 && strcmp(rightType, "int") == 0){     // float = int
+	} else if (strcmp(returnType, "float") == 0 && strcmp(rightType, "int") == 0){     // float = int
 		fprintf(file, "\ti2f\n");
         genCode("\tfreturn\n");
 
-	} else if(strcmp(returnType, "float") == 0 && strcmp(rightType, "float") == 0){   // float = float
+	} else if (strcmp(returnType, "float") == 0 && strcmp(rightType, "float") == 0){   // float = float
         genCode("\tfreturn\n");
 
-	} else if(strcmp(returnType, "bool") == 0 && strcmp(rightType, "bool") == 0){     // bool = bool
+	} else if (strcmp(returnType, "bool") == 0 && strcmp(rightType, "bool") == 0){     // bool = bool
         genCode("\tireturn\n");
 
-	} else{
+	} else {
 		yyerror("Return type error");
 	}
+}
+
+void gencode_invokeFunct(char* functName[VAR_SIZE]) {
+    int functIndex = getVarIndexOfSymbolTable(functName);
+
+    genCode("\tinvokestatic compiler_hw3/");
+	genCode(functName);
+	genCode("(");
+
+    char* params = symbolTable[functIndex].formalParameters;
+    if (params != NULL) {
+        char* pch = strtok(params, ", ");
+        while (pch != NULL) {
+            if (strcmp(pch, "void") != 0) {
+                genCode(getTypeCode(pch));
+                pch = strtok(NULL, ", ");
+            }
+        }
+    }
+	genCode(")");
+	genCode(getTypeCode(symbolTable[functIndex].dataType));
+	genCode("\n");
 }
