@@ -204,12 +204,30 @@ expression
     ;
 
 selection_statement
-    : IF LB expression RB statement ELSE statement
-    | IF LB expression RB statement
+    : IF LB expression RB statement {
+        cmp_label_index++;
+        fprintf(file, "\tgoto EXIT%d\n", cmp_label_index);
+        fprintf(file, "LABEL_FALSE_%d\:\n", cmp_label_index);
+    } ELSE statement {
+        fprintf(file, "EXIT%d\:\n", cmp_label_index);
+    }
+    | IF LB expression RB statement{
+        fprintf(file, "LABEL_FALSE_%d\:\n", cmp_label_index);
+    }
     ;
 
 iteration_statement
-    : WHILE LB expression RB statement
+    : WHILE { 
+        cmp_label_index++;
+        fprintf(file, "LABEL_WHILE_BEGIN_%d\:\n", cmp_label_index); 
+    }
+    LB expression RB statement { 
+        fprintf(file, "\tgoto LABEL_BEGIN_%d\n", cmp_label_index);
+        fprintf(file, "LABEL_FALSE_%d\:\n", cmp_label_index);
+        fprintf(file, "\tgoto EXIT%d\n", cmp_label_index);
+        fprintf(file, "EXIT%d\:\n", cmp_label_index);
+
+     }
     | FOR LB expression_statement expression_statement RB statement
     | FOR LB expression_statement expression_statement expression RB statement
     | FOR LB declaration expression_statement RB statement
@@ -959,54 +977,72 @@ char* gencode_modExpr(char* leftType, char* rightType) {
 
 void gencode_cmpExpr(char* leftType, char* rightType, char* instruction){
 
-    if(strcmp(leftType, "int") == 0 && strcmp(rightType, "int") == 0){
-        fprintf(file, "\ti2f\n");
-        fprintf(file, "\tswap\n");
-        fprintf(file, "\ti2f\n");
-        fprintf(file, "\tswap\n");
-	}
-	else if(strcmp(leftType, "int") == 0 && strcmp(rightType, "float") == 0){
-        fprintf(file, "\tswap\n");
-        fprintf(file, "\ti2f\n");
-        fprintf(file, "\tswap\n");
-	}
-	else if(strcmp(leftType, "float") == 0 && strcmp(rightType, "int") == 0){
-		fprintf(file, "\ti2f\n");
-	}
-	else if(strcmp(leftType, "float") == 0 && strcmp(rightType, "float") == 0){
+    // if(strcmp(leftType, "int") == 0 && strcmp(rightType, "int") == 0){
+    //     fprintf(file, "\ti2f\n");
+    //     fprintf(file, "\tswap\n");
+    //     fprintf(file, "\ti2f\n");
+    //     fprintf(file, "\tswap\n");
+	// }
+	// else if(strcmp(leftType, "int") == 0 && strcmp(rightType, "float") == 0){
+    //     fprintf(file, "\tswap\n");
+    //     fprintf(file, "\ti2f\n");
+    //     fprintf(file, "\tswap\n");
+	// }
+	// else if(strcmp(leftType, "float") == 0 && strcmp(rightType, "int") == 0){
+	// 	fprintf(file, "\ti2f\n");
+	// }
+	// else if(strcmp(leftType, "float") == 0 && strcmp(rightType, "float") == 0){
 
-	}
-	else{
-		yyerror("Unsupported type for doing instruction in gencode_cmpExpr()");
-	}
+	// }
+	// else{
+	// 	yyerror("Unsupported type for doing instruction in gencode_cmpExpr()");
+	// }
 
 
-	fprintf(file, "\tfcmpl\n");
+	// fprintf(file, "\tfcmpl\n");
+    gencode_arihmeticExpr(leftType, rightType, "sub");
 
 	char* jasmin_instruction;
 
     if (strcmp(instruction, "LT") == 0) {
-        jasmin_instruction = "iflt";
-    } else if (strcmp(instruction, "MT") == 0) {
-        jasmin_instruction = "ifgt";
-    } else if (strcmp(instruction, "LTE") == 0) {
-        jasmin_instruction = "ifle";
-    } else if (strcmp(instruction, "MTE") == 0) {
         jasmin_instruction = "ifge";
+    } else if (strcmp(instruction, "MT") == 0) {
+        jasmin_instruction = "ifle";
+    } else if (strcmp(instruction, "LTE") == 0) {
+        jasmin_instruction = "ifgt";
+    } else if (strcmp(instruction, "MTE") == 0) {
+        jasmin_instruction = "iflt";
     } else if (strcmp(instruction, "EQ") == 0) {
-        jasmin_instruction = "ifeq";
-    } else if (strcmp(instruction, "NE") == 0) {
         jasmin_instruction = "ifne";
+    } else if (strcmp(instruction, "NE") == 0) {
+        jasmin_instruction = "ifeq";
     }
+    // cmp_label_index++;
 
-    fprintf(file, "\t%s L_%s_TRUE_%d\n", jasmin_instruction, instruction, cmp_label_index);
-    fprintf(file, "\ticonst_0\n");
-    fprintf(file, "\tgoto L_%s_FALSE_%d\n", instruction, cmp_label_index);
-    fprintf(file, "L_%s_TRUE_%d:\n", instruction, cmp_label_index);
-    fprintf(file, "\ticonst_1\n");
-    fprintf(file, "L_%s_FALSE_%d:\n", instruction, cmp_label_index);
+    fprintf(file, "\t%s LABEL_FALSE_%d\n", jasmin_instruction, cmp_label_index);
+    // fprintf(file, "\tgoto LABEL_%s_FALSE_%d\n", instruction, cmp_label_index);
+    // fprintf(file, "LABEL_%s_FALSE_%d:\n", instruction, cmp_label_index);
 
-	cmp_label_index++;
+
+    // if (strcmp(instruction, "LT") == 0) {
+    //     jasmin_instruction = "iflt";
+    // } else if (strcmp(instruction, "MT") == 0) {
+    //     jasmin_instruction = "ifgt";
+    // } else if (strcmp(instruction, "LTE") == 0) {
+    //     jasmin_instruction = "ifle";
+    // } else if (strcmp(instruction, "MTE") == 0) {
+    //     jasmin_instruction = "ifge";
+    // } else if (strcmp(instruction, "EQ") == 0) {
+    //     jasmin_instruction = "ifeq";
+    // } else if (strcmp(instruction, "NE") == 0) {
+    //     jasmin_instruction = "ifne";
+    // }
+
+    // fprintf(file, "\t%s LABEL_%s_TRUE_%d\n", jasmin_instruction, instruction, cmp_label_index);
+    // fprintf(file, "\tgoto LABEL_%s_FALSE_%d\n", instruction, cmp_label_index);
+    // fprintf(file, "LABEL_%s_TRUE_%d:\n", instruction, cmp_label_index);
+
+    // fprintf(file, "LABEL_%s_FALSE_%d:\n", instruction, cmp_label_index);
 }
 
 int getVarIndexOfSymbolTable(char varName[VAR_SIZE]) {
@@ -1064,7 +1100,7 @@ char* gencode_asgnExpr(char* leftVarName[VAR_SIZE], char* leftType, char* rightT
         fprintf(file, "\tswap\n");
         gencode_arihmeticExpr(leftType, rightType, "div");
         gencode_store(leftVarName, leftType);
-    } else if (strcmp(instruction, "MODASGN") == 0) {
+    } else if (strcmp(instruction, "MODASMODASGN") == 0) {
         gencode_load(leftVarName);
         fprintf(file, "\tswap\n");
         gencode_modExpr(leftType, rightType);
